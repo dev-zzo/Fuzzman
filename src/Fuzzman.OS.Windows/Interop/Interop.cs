@@ -364,48 +364,11 @@ namespace Fuzzman.OS.Windows.Interop
 
         #endregion
 
-        #region Files and I/O
-
-        [DllImport("kernel32.dll")]
-		public static extern uint GetFileSize(
-            IntPtr hFile,
-            ref uint lpFileSizeHigh);
-		
-		[DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-		public static extern IntPtr CreateFileMapping(
-			IntPtr hFile,
-			IntPtr lpFileMappingAttributes,
-			FileMapProtection flProtect,
-			uint dwMaximumSizeHigh,
-			uint dwMaximumSizeLow,
-			[MarshalAs(UnmanagedType.LPTStr)] string lpName);
-
-		[DllImport("kernel32.dll")]
-		public static extern uint GetMappedFileName(
-            IntPtr hProcess,
-            IntPtr lpv,
-            ref StringBuilder lpFilename, 
-            uint nSize);
-
-		[DllImport("kernel32.dll", SetLastError = true)]
-		public static extern IntPtr MapViewOfFile(
-			IntPtr hFileMappingObject,
-			FileMapAccess dwDesiredAccess,
-			uint dwFileOffsetHigh,
-			uint dwFileOffsetLow,
-			uint dwNumberOfBytesToMap);
-
-		[DllImport("kernel32.dll", SetLastError = true)]
-		public static extern bool UnmapViewOfFile(
-            IntPtr lpBaseAddress);
-
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(IntPtr hObject);
 
         [DllImport("kernel32.dll", EntryPoint = "RtlZeroMemory", SetLastError = false)]
         public static extern void ZeroMemory(IntPtr dest, IntPtr size);
-
-        #endregion
     }
 }

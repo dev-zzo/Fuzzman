@@ -34,6 +34,7 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Debugger\Events.cs" />
     <Compile Include="IAgent.cs" />
     <Compile Include="IDebugger.cs" />
     <Compile Include="ILogger.cs" />

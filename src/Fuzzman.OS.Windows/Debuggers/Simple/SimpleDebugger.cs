@@ -3,13 +3,19 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Fuzzman.Core;
+using Fuzzman.Core.Debugger;
 using Fuzzman.OS.Windows.Interop;
+using System.Text;
 
 namespace Fuzzman.OS.Windows.Debuggers.Simple
 {
     public sealed class SimpleDebugger : IDebugger
     {
         public uint DebuggeePid { get; private set; }
+
+        public event DebuggerSharedLibraryLoadedEventHandler DebuggerSharedLibraryLoadedEvent;
+
+        public event DebuggerSharedLibraryUnloadedEventHandler DebuggerSharedLibraryUnloadedEvent;
 
         public void CreateProcess(string commandLine)
         {
@@ -47,10 +53,13 @@ namespace Fuzzman.OS.Windows.Debuggers.Simple
 
         private Thread debuggerThread = null;
         private bool isStopping = false;
+        private bool debuggeeExited = false;
 
         private bool ShouldContinueDebugging()
         {
             if (this.isStopping)
+                return false;
+            if (this.debuggeeExited)
                 return false;
 
             return true;
@@ -106,9 +115,11 @@ namespace Fuzzman.OS.Windows.Debuggers.Simple
 
         private void DebuggerThreadProcReal()
         {
-            while (this.ShouldContinueDebugging())
+            uint defaultTimeout = 100;
+
+            for(;;)
             {
-                this.PumpEvents(250);
+                this.PumpEvents(defaultTimeout);
             }
         }
 
@@ -242,19 +253,40 @@ namespace Fuzzman.OS.Windows.Debuggers.Simple
 
             if (this.DebuggeePid == pid)
             {
+                this.debuggeeExited = true;
             }
+
             return true;
         }
 
         private bool OnLoadDllDebugEvent(uint pid, uint tid, LOAD_DLL_DEBUG_INFO info)
         {
-            this.logger.Debug(String.Format("LoadDll event: pid {0}, tid {1}: {2}", pid, tid, info.lpImageName));
+            string imageName = "unknown"; // TODO
+            this.logger.Debug(String.Format("LoadDll event: pid {0}, tid {1}: {2}", pid, tid, imageName));
 
+            if (this.DebuggerSharedLibraryLoadedEvent != null)
+            {
+                DebuggerSharedLibraryLoadedEventParams e = new DebuggerSharedLibraryLoadedEventParams();
+                e.ImageBase = info.lpBaseOfDll;
+                e.ImageName = imageName;
+                this.DebuggerSharedLibraryLoadedEvent(this, e);
+            }
+
+            Kernel32.CloseHandle(info.hFile);
             return true;
         }
 
         private bool OnUnloadDllDebugEvent(uint pid, uint tid, UNLOAD_DLL_DEBUG_INFO info)
         {
+            this.logger.Debug(String.Format("UnloadDll event: pid {0}, tid {1}: {2}", pid, tid));
+
+            if (this.DebuggerSharedLibraryUnloadedEvent != null)
+            {
+                DebuggerSharedLibraryUnloadedEventParams e = new DebuggerSharedLibraryUnloadedEventParams();
+                e.ImageBase = info.lpBaseOfDll;
+                this.DebuggerSharedLibraryUnloadedEvent(this, e);
+            }
+
             return true;
         }
 
