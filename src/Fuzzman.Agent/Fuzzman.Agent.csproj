@@ -45,10 +45,6 @@
       <Project>{9ED4E918-5CBC-430B-BA2B-B7176AC244F1}</Project>
       <Name>Fuzzman.Core</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Fuzzman.OS.Windows\Fuzzman.OS.Windows.csproj">
-      <Project>{8436F565-DA51-4292-A6BE-1693D5EC7E7E}</Project>
-      <Name>Fuzzman.OS.Windows</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

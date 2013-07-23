@@ -34,13 +34,28 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Debugger\DebugInfo\ExceptionDebugInfo.cs" />
     <Compile Include="Debugger\Events.cs" />
+    <Compile Include="Debugger\ModuleInfo.cs" />
+    <Compile Include="Debugger\Simple\DebuggerHelper.cs" />
+    <Compile Include="Debugger\Simple\SimpleDebugger.cs" />
+    <Compile Include="Debugger\ThreadInfo.cs" />
     <Compile Include="IAgent.cs" />
     <Compile Include="IDebugger.cs" />
     <Compile Include="ILogger.cs" />
+    <Compile Include="Interop\Context.cs" />
+    <Compile Include="Interop\Debug.cs" />
+    <Compile Include="Interop\Exceptions.cs" />
+    <Compile Include="Interop\Kernel32.cs" />
+    <Compile Include="Interop\Loader.cs" />
+    <Compile Include="Interop\NTSTATUS.cs" />
+    <Compile Include="Interop\Peb.cs" />
+    <Compile Include="Interop\Structs.cs" />
+    <Compile Include="Interop\Teb.cs" />
     <Compile Include="LogManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

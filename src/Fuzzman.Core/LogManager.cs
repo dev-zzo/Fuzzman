@@ -61,7 +61,7 @@ namespace Fuzzman.Core
             {
                 using (StreamWriter writer = new StreamWriter(stream))
                 {
-                    writer.WriteLine(String.Format("[{0}] {1}", level, message));
+                    writer.WriteLine(String.Format("[{0,5}] {1}", level, message));
                 }
             }
         }

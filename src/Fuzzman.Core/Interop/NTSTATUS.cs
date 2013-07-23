@@ -1,4 +1,4 @@
-﻿namespace Fuzzman.OS.Windows.Interop
+﻿namespace Fuzzman.Core.Interop
 {
     public enum NTSTATUS : uint
     {

@@ -1,10 +1,13 @@
-﻿
-namespace Fuzzman.OS.Windows.Interop
+﻿using System;
+using System.Runtime.InteropServices;
+using System.Text;
+
+namespace Fuzzman.Core.Interop
 {
-    enum EXCEPTION_CODE : uint
+    public enum EXCEPTION_CODE : uint
     {
-		DBG_CONTROL_C = 0x40010005,
-		EXCEPTION_ACCESS_VIOLATION = NTSTATUS.STATUS_ACCESS_VIOLATION,
+        DBG_CONTROL_C = 0x40010005,
+        EXCEPTION_ACCESS_VIOLATION = NTSTATUS.STATUS_ACCESS_VIOLATION,
         EXCEPTION_DATATYPE_MISALIGNMENT = NTSTATUS.STATUS_DATATYPE_MISALIGNMENT,
         EXCEPTION_BREAKPOINT = NTSTATUS.STATUS_BREAKPOINT,
         EXCEPTION_SINGLE_STEP = NTSTATUS.STATUS_SINGLE_STEP,
@@ -27,5 +30,17 @@ namespace Fuzzman.OS.Windows.Interop
         EXCEPTION_GUARD_PAGE = NTSTATUS.STATUS_GUARD_PAGE_VIOLATION,
         EXCEPTION_INVALID_HANDLE = NTSTATUS.STATUS_INVALID_HANDLE,
         EXCEPTION_POSSIBLE_DEADLOCK = NTSTATUS.STATUS_POSSIBLE_DEADLOCK,
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct EXCEPTION_RECORD
+    {
+        public EXCEPTION_CODE ExceptionCode;
+        public uint ExceptionFlags;
+        public IntPtr ExceptionRecord;
+        public IntPtr ExceptionAddress;
+        public uint NumberParameters;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 15)]
+        public IntPtr[] ExceptionInformation;
     }
 }
