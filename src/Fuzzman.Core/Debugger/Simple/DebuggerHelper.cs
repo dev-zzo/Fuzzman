@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using System.Text;
 using Fuzzman.Core.Interop;
-using System.Runtime.InteropServices;
 
 namespace Fuzzman.Core.Debugger.Simple
 {
@@ -48,7 +48,7 @@ namespace Fuzzman.Core.Debugger.Simple
         /// <param name="address"></param>
         /// <param name="type"></param>
         /// <returns></returns>
-        public static object ReadTargetStructure(IntPtr processHandle, IntPtr address, Type type)
+        public static object ReadTargetMemory(IntPtr processHandle, IntPtr address, Type type)
         {
             int size = Marshal.SizeOf(type);
             byte[] data = new byte[size];
@@ -70,7 +70,7 @@ namespace Fuzzman.Core.Debugger.Simple
         /// <returns></returns>
         public static string ReadUnicodeString(IntPtr processHandle, IntPtr addr)
         {
-            UNICODE_STRING str = (UNICODE_STRING)ReadTargetStructure(processHandle, addr, typeof(UNICODE_STRING));
+            UNICODE_STRING str = (UNICODE_STRING)ReadTargetMemory(processHandle, addr, typeof(UNICODE_STRING));
             return ReadUnicodeString(processHandle, str);
         }
 

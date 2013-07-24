@@ -28,6 +28,27 @@ namespace Fuzzman.Core.Interop
         Synchronize = 0x100000
     }
 
+    [Flags]
+    public enum ProcessCreationFlags : uint
+    {
+        DEBUG_PROCESS = 0x00000001,
+        DEBUG_ONLY_THIS_PROCESS = 0x00000002,
+        CREATE_SUSPENDED = 0x00000004,
+        DETACHED_PROCESS = 0x00000008,
+        CREATE_NEW_CONSOLE = 0x00000010,
+        CREATE_NEW_PROCESS_GROUP = 0x00000200,
+        CREATE_UNICODE_ENVIRONMENT = 0x00000400,
+        CREATE_SEPARATE_WOW_VDM = 0x00000800,
+        CREATE_SHARED_WOW_VDM = 0x00001000,
+        INHERIT_PARENT_AFFINITY = 0x00010000,
+        CREATE_PROTECTED_PROCESS = 0x00040000,
+        EXTENDED_STARTUPINFO_PRESENT = 0x00080000,
+        CREATE_BREAKAWAY_FROM_JOB = 0x01000000,
+        CREATE_PRESERVE_CODE_AUTHZ_LEVEL = 0x02000000,
+        CREATE_DEFAULT_ERROR_MODE = 0x04000000,
+        CREATE_NO_WINDOW = 0x08000000,
+    }
+
     public static class Kernel32
     {
         #region Processes and threads
@@ -36,10 +57,10 @@ namespace Fuzzman.Core.Interop
         public static extern bool CreateProcess(
             string lpApplicationName,
             string lpCommandLine,
-            int lpProcessAttributes,
-            int lpThreadAttributes,
+            IntPtr lpProcessAttributes,
+            IntPtr lpThreadAttributes,
             bool bInheritHandles,
-            uint dwCreationFlags,
+            ProcessCreationFlags dwCreationFlags,
             IntPtr lpEnvironment,
             string lpCurrentDirectory,
             [In] ref STARTUPINFO lpStartupInfo,
@@ -55,8 +76,8 @@ namespace Fuzzman.Core.Interop
         public static extern bool ReadProcessMemory(
             IntPtr hProcess,
             IntPtr lpBaseAddress,
-            [Out] byte[] buffer,
-            UInt32 size,
+            [Out] byte[] lpBuffer,
+            UInt32 nSize,
             out uint lpNumberOfBytesRead);
 
         [DllImport("kernel32.dll", SetLastError = true)]
@@ -117,18 +138,22 @@ namespace Fuzzman.Core.Interop
         public static extern bool WaitForDebugEvent(IntPtr lpDebugEvent, uint dwMilliseconds);
 
         [DllImport("kernel32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool DebugActiveProcess(uint dwProcessId);
 
         [DllImport("kernel32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool DebugActiveProcessStop(uint dwProcessId);
 
         [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool ContinueDebugEvent(
             uint dwProcessId,
             uint dwThreadId,
             uint dwContinueStatus);
 
         [DllImport("kernel32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool DebugSetProcessKillOnExit(
             bool KillOnExit);
 

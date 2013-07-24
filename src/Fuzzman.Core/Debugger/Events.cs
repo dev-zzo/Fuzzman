@@ -24,7 +24,25 @@ namespace Fuzzman.Core.Debugger
         public IntPtr ImageBase;
     }
 
-    public class ProcessExitEventParams
+    public class ProcessCreatedEventParams
+    {
+        public uint ProcessId;
+    }
+
+    public class ThreadCreatedEventParams
+    {
+        public uint ProcessId;
+        public uint ThreadId;
+    }
+
+    public class ThreadExitedEventParams
+    {
+        public uint ProcessId;
+        public uint ThreadId;
+        public uint ExitCode;
+    }
+
+    public class ProcessExitedEventParams
     {
         public uint ProcessId;
         public uint ExitCode;
@@ -36,5 +54,11 @@ namespace Fuzzman.Core.Debugger
 
     public delegate void SharedLibraryUnloadedEventHandler(IDebugger sender, SharedLibraryUnloadedEventParams e);
 
-    public delegate void ProcessExitEventHandler(IDebugger sender, ProcessExitEventParams e);
+    public delegate void ProcessCreatedEventHandler(IDebugger sender, ProcessCreatedEventParams e);
+
+    public delegate void ThreadCreatedEventHandler(IDebugger sender, ThreadCreatedEventParams e);
+
+    public delegate void ThreadExitedEventHandler(IDebugger sender, ThreadExitedEventParams e);
+
+    public delegate void ProcessExitedEventHandler(IDebugger sender, ProcessExitedEventParams e);
 }

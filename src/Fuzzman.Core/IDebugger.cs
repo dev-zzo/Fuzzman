@@ -21,6 +21,14 @@ namespace Fuzzman.Core
 
         event SharedLibraryUnloadedEventHandler SharedLibraryUnloadedEvent;
 
+        event ProcessCreatedEventHandler ProcessCreatedEvent;
+
+        event ThreadCreatedEventHandler ThreadCreatedEvent;
+
+        event ThreadExitedEventHandler ThreadExitedEvent;
+
+        event ProcessExitedEventHandler ProcessExitedEvent;
+
 
         void StartTarget(string commandLine);
 
