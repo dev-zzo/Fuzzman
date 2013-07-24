@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
+﻿using System.Threading;
 using Fuzzman.Core.Debugger.Simple;
 
 namespace Fuzzman.Agent
@@ -12,7 +8,7 @@ namespace Fuzzman.Agent
         static void Main(string[] args)
         {
             SimpleDebugger d = new SimpleDebugger();
-            d.CreateTarget("cmd.exe");
+            d.StartTarget("CrashApp.exe");
             Thread.Sleep(100000);
             d.Stop();
         }

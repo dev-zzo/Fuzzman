@@ -71,9 +71,20 @@ namespace Fuzzman.Core.Debugger.Simple
         public static string ReadUnicodeString(IntPtr processHandle, IntPtr addr)
         {
             UNICODE_STRING str = (UNICODE_STRING)ReadTargetStructure(processHandle, addr, typeof(UNICODE_STRING));
+            return ReadUnicodeString(processHandle, str);
+        }
+
+        /// <summary>
+        /// Reads the value of the UNICODE_STRING object from the target's memory space.
+        /// </summary>
+        /// <param name="processHandle"></param>
+        /// <param name="addr"></param>
+        /// <returns></returns>
+        public static string ReadUnicodeString(IntPtr processHandle, UNICODE_STRING str)
+        {
             byte[] buffer = new byte[str.Length];
             uint bytesRead;
-            Kernel32.ReadProcessMemory(processHandle, addr, buffer, str.Length, out bytesRead);
+            Kernel32.ReadProcessMemory(processHandle, str.Buffer, buffer, str.Length, out bytesRead);
             return Encoding.Unicode.GetString(buffer);
         }
 

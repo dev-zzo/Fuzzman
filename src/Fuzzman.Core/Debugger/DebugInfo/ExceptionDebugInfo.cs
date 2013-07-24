@@ -8,7 +8,7 @@ namespace Fuzzman.Core.Debugger.DebugInfo
     {
         public EXCEPTION_CODE ExceptionCode;
 
-        public IntPtr ExceptionAddress;
+        public IntPtr OffendingVA;
 
         public bool IsContinuable;
 
@@ -18,7 +18,7 @@ namespace Fuzzman.Core.Debugger.DebugInfo
         {
             StringBuilder builder = new StringBuilder();
             builder.AppendFormat("Exception code: {0:X8} ({1})\r\n", (uint)this.ExceptionCode, this.ExceptionCode);
-            builder.AppendFormat("Exception addr: {0:X16}\r\n", (UInt64)this.ExceptionAddress);
+            builder.AppendFormat("Exception addr: {0:X16}\r\n", (UInt64)this.OffendingVA);
             builder.Append(this.GetSpecificInfo());
             if (this.NestedException != null)
             {
@@ -43,6 +43,8 @@ namespace Fuzzman.Core.Debugger.DebugInfo
         }
 
         public AccessType Type;
+
+        public IntPtr TargetVA;
 
         protected override string GetSpecificInfo()
         {

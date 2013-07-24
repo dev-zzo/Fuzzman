@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
+// http://undocumented.ntinternals.net/UserMode/Undocumented%20Functions/NT%20Objects/Process/PEB.html
+
 namespace Fuzzman.Core.Interop
 {
     [StructLayout(LayoutKind.Sequential)]
