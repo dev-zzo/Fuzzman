@@ -45,7 +45,7 @@
     <Compile Include="Mutator\ByteSlapper.cs" />
     <Compile Include="IAgent.cs" />
     <Compile Include="IDebugger.cs" />
-    <Compile Include="IFuzzer.cs" />
+    <Compile Include="IMutator.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="Interop\Context.cs" />
     <Compile Include="Interop\Debug.cs" />
