@@ -1,6 +1,6 @@
 int main()
 {
-	int *bad_ptr = (int *)0xB0DEB0DE;
+	int *bad_ptr = (int *)0x41414141;
 #if 0
 	*bad_ptr = 0x12345678;
 	

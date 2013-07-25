@@ -53,6 +53,7 @@
     <Compile Include="Interop\Structs.cs" />
     <Compile Include="Interop\Teb.cs" />
     <Compile Include="LogManager.cs" />
+    <Compile Include="Monitor\CpuUsageMonitor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />

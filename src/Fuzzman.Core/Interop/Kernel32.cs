@@ -67,10 +67,10 @@ namespace Fuzzman.Core.Interop
             out PROCESS_INFORMATION lpProcessInformation);
 
         [DllImport("kernel32.dll")]
-        static extern IntPtr OpenProcess(
+        public static extern IntPtr OpenProcess(
             ProcessAccess dwDesiredAccess,
-            [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle,
-            int dwProcessId);
+            bool bInheritHandle,
+            uint dwProcessId);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool ReadProcessMemory(
@@ -129,41 +129,50 @@ namespace Fuzzman.Core.Interop
         public static extern IntPtr GetModuleHandle(
             string moduleName);
 
+        [DllImport("kernel32.dll")]
+        public static extern bool GetProcessTimes(
+            IntPtr hProcess,
+            out UInt64 lpCreationTime,
+            out UInt64 lpExitTime,
+            out UInt64 lpKernelTime,
+            out UInt64 lpUserTime);
+
         #endregion
 
         #region Debugging
 
         [DllImport("kernel32.dll", EntryPoint = "WaitForDebugEvent")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool WaitForDebugEvent(IntPtr lpDebugEvent, uint dwMilliseconds);
+        public static extern bool WaitForDebugEvent(
+            IntPtr lpDebugEvent,
+            uint dwMilliseconds);
 
         [DllImport("kernel32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool DebugActiveProcess(uint dwProcessId);
+        public static extern bool DebugActiveProcess(
+            uint dwProcessId);
 
         [DllImport("kernel32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool DebugActiveProcessStop(uint dwProcessId);
+        public static extern bool DebugActiveProcessStop(
+            uint dwProcessId);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool ContinueDebugEvent(
             uint dwProcessId,
             uint dwThreadId,
             uint dwContinueStatus);
 
         [DllImport("kernel32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool DebugSetProcessKillOnExit(
             bool KillOnExit);
 
         #endregion
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool CloseHandle(IntPtr hObject);
+        public static extern bool CloseHandle(
+            IntPtr hObject);
 
         [DllImport("kernel32.dll", EntryPoint = "RtlZeroMemory", SetLastError = false)]
-        public static extern void ZeroMemory(IntPtr dest, IntPtr size);
+        public static extern void ZeroMemory(
+            IntPtr dest,
+            IntPtr size);
     }
 }
