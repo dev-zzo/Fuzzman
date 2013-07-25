@@ -50,15 +50,15 @@ namespace Fuzzman.Core.Debugger
 
     public delegate void ExceptionEventHandler(IDebugger sender, ExceptionEventParams info);
 
-    public delegate void SharedLibraryLoadedEventHandler(IDebugger sender, SharedLibraryLoadedEventParams e);
+    public delegate void SharedLibraryLoadedEventHandler(IDebugger sender, SharedLibraryLoadedEventParams info);
 
-    public delegate void SharedLibraryUnloadedEventHandler(IDebugger sender, SharedLibraryUnloadedEventParams e);
+    public delegate void SharedLibraryUnloadedEventHandler(IDebugger sender, SharedLibraryUnloadedEventParams info);
 
-    public delegate void ProcessCreatedEventHandler(IDebugger sender, ProcessCreatedEventParams e);
+    public delegate void ProcessCreatedEventHandler(IDebugger sender, ProcessCreatedEventParams info);
 
-    public delegate void ThreadCreatedEventHandler(IDebugger sender, ThreadCreatedEventParams e);
+    public delegate void ThreadCreatedEventHandler(IDebugger sender, ThreadCreatedEventParams info);
 
-    public delegate void ThreadExitedEventHandler(IDebugger sender, ThreadExitedEventParams e);
+    public delegate void ThreadExitedEventHandler(IDebugger sender, ThreadExitedEventParams info);
 
-    public delegate void ProcessExitedEventHandler(IDebugger sender, ProcessExitedEventParams e);
+    public delegate void ProcessExitedEventHandler(IDebugger sender, ProcessExitedEventParams info);
 }

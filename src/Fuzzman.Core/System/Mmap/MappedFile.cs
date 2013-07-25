@@ -6,7 +6,7 @@ namespace Fuzzman.Core.System.Mmap
 {
     public class MappedFile : IDisposable
     {
-        public MappedFile(string path, FileMode mode, FileAccess access)
+        public MappedFile(string path, FileMode mode, FileAccess access, uint maxSize = 0)
         {
             this.stream = new FileStream(path, mode, access);
             this.fileHandle = this.stream.SafeFileHandle.DangerousGetHandle();
@@ -20,7 +20,7 @@ namespace Fuzzman.Core.System.Mmap
                 IntPtr.Zero,
                 this.mappingAccess,
                 0,
-                0,
+                maxSize,
                 IntPtr.Zero);
             if (this.mappingHandle == IntPtr.Zero)
             {

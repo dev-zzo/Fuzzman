@@ -93,6 +93,7 @@ namespace Fuzzman.Core.Debugger.Simple
             if (this.debuggerThread.IsAlive)
             {
                 this.debuggerThread.Join();
+                this.debuggerThread = null;
             }
         }
 
@@ -114,9 +115,9 @@ namespace Fuzzman.Core.Debugger.Simple
         private readonly IDictionary<IntPtr, ModuleInfo> moduleMap = new Dictionary<IntPtr, ModuleInfo>();
 
         private Thread debuggerThread = null;
+        private Exception debuggerException = null;
         private bool continueDebugging = true;
         private bool ignoreBreakpoint = false;
-        private Exception debuggerException = null;
 
         private IntPtr targetProcessHandle;
         private IntPtr targetProcessPebAddress;
