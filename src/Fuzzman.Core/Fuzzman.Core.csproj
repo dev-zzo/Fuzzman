@@ -40,6 +40,9 @@
     <Compile Include="Debugger\Simple\DebuggerHelper.cs" />
     <Compile Include="Debugger\Simple\SimpleDebugger.cs" />
     <Compile Include="Debugger\ThreadInfo.cs" />
+    <Compile Include="Mutator\BitFlipper.cs" />
+    <Compile Include="Mutator\ValueSetter.cs" />
+    <Compile Include="Mutator\ByteSlapper.cs" />
     <Compile Include="IAgent.cs" />
     <Compile Include="IDebugger.cs" />
     <Compile Include="IFuzzer.cs" />
@@ -53,15 +56,15 @@
     <Compile Include="Interop\Peb.cs" />
     <Compile Include="Interop\Structs.cs" />
     <Compile Include="Interop\Teb.cs" />
+    <Compile Include="IRandom.cs" />
     <Compile Include="LogManager.cs" />
     <Compile Include="Monitor\CpuUsageMonitor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StdRandom.cs" />
     <Compile Include="System\Mmap\MappedFile.cs" />
     <Compile Include="System\Mmap\MappedFileView.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Fuzzer\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

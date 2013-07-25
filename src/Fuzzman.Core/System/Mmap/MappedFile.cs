@@ -28,7 +28,7 @@ namespace Fuzzman.Core.System.Mmap
             }
         }
 
-        public MappedFileView CreateView(ulong offset, ulong length)
+        public MappedFileView CreateView(uint offset, uint length)
         {
             return new MappedFileView(this.mappingHandle, this.mappingAccess, offset, length);
         }
