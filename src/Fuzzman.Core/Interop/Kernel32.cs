@@ -49,6 +49,30 @@ namespace Fuzzman.Core.Interop
         CREATE_NO_WINDOW = 0x08000000,
     }
 
+    [Flags]
+    public enum FileMapProtection : uint
+    {
+        PageReadOnly = 0x02,
+        PageReadWrite = 0x04,
+        PageWriteCopy = 0x08,
+        PageExecuteRead = 0x20,
+        PageExecuteReadWrite = 0x40,
+        SectionCommit = 0x8000000,
+        SectionImage = 0x1000000,
+        SectionNoCache = 0x10000000,
+        SectionReserve = 0x4000000,
+    }
+
+    [Flags]
+    public enum FileMapAccess : uint
+    {
+        Copy = 0x0001,
+        Write = 0x0002,
+        Read = 0x0004,
+        AllAccess = 0x001f,
+        Execute = 0x0020,
+    }
+
     public static class Kernel32
     {
         #region Processes and threads
@@ -136,6 +160,37 @@ namespace Fuzzman.Core.Interop
             out UInt64 lpExitTime,
             out UInt64 lpKernelTime,
             out UInt64 lpUserTime);
+
+        #endregion
+
+        #region File mapping
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr CreateFileMapping(
+            IntPtr hFile,
+            IntPtr lpAttributes,
+            FileMapProtection flProtect,
+            uint dwMaximumSizeHigh,
+            uint dwMaximumSizeLow,
+            IntPtr lpName);
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr MapViewOfFileEx(
+            IntPtr hFileMappingObject,
+            FileMapAccess dwDesiredAccess,
+            uint dwFileOffsetHigh,
+            uint dwFileOffsetLow,
+            IntPtr dwNumberOfBytesToMap,
+            IntPtr lpBaseAddress);
+
+        [DllImport("kernel32.dll")]
+        public static extern bool UnmapViewOfFile(
+            IntPtr lpBaseAddress);
+
+        [DllImport("kernel32.dll")]
+        public static extern bool FlushViewOfFile(
+            IntPtr lpBaseAddress,
+            IntPtr dwNumberOfBytesToFlush);
 
         #endregion
 

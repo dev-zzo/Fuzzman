@@ -42,6 +42,7 @@
     <Compile Include="Debugger\ThreadInfo.cs" />
     <Compile Include="IAgent.cs" />
     <Compile Include="IDebugger.cs" />
+    <Compile Include="IFuzzer.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="Interop\Context.cs" />
     <Compile Include="Interop\Debug.cs" />
@@ -55,8 +56,12 @@
     <Compile Include="LogManager.cs" />
     <Compile Include="Monitor\CpuUsageMonitor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="System\Mmap\MappedFile.cs" />
+    <Compile Include="System\Mmap\MappedFileView.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Fuzzer\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

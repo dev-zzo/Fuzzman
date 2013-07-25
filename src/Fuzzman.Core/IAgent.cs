@@ -8,5 +8,14 @@ namespace Fuzzman.Core
     /// </summary>
     public interface IAgent
     {
+        /// <summary>
+        /// Start the agent activity.
+        /// </summary>
+        void Start();
+
+        /// <summary>
+        /// Stop the agent activity.
+        /// </summary>
+        void Stop();
     }
 }
