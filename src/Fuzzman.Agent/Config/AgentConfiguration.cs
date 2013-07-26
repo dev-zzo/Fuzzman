@@ -13,6 +13,7 @@ namespace Fuzzman.Agent.Config
         {
             this.TestCasesPath = "";
             this.TestCaseTemplate = "{DATETIME}-TC{TCN}";
+            this.Timeout = 30;
         }
 
         /// <summary>

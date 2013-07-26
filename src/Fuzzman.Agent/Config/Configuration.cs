@@ -6,5 +6,7 @@ namespace Fuzzman.Agent.Config
     public class Configuration
     {
         public AgentConfiguration Agent { get; set; }
+
+        public string LogFilePath { get; set; }
     }
 }

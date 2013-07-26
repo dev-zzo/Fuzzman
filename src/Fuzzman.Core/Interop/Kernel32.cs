@@ -192,6 +192,11 @@ namespace Fuzzman.Core.Interop
             IntPtr lpBaseAddress,
             IntPtr dwNumberOfBytesToFlush);
 
+        [DllImport("kernel32.dll")]
+        public static extern bool GetFileSizeEx(
+            IntPtr hFile,
+            out UInt64 lpFileSize);
+
         #endregion
 
         #region Debugging

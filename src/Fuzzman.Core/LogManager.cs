@@ -8,6 +8,11 @@ namespace Fuzzman.Core
     /// </summary>
     public class LogManager
     {
+        public static void Initialize(string path)
+        {
+            instance = new LameFileLogger(path);
+        }
+
         public static ILogger GetLogger(string facility)
         {
             return instance;
@@ -18,7 +23,7 @@ namespace Fuzzman.Core
             return instance;
         }
 
-        private static ILogger instance = new LameFileLogger("logfile.txt");
+        private static ILogger instance;
     }
 
     class LameFileLogger : ILogger
@@ -42,7 +47,7 @@ namespace Fuzzman.Core
 
         public void Warning(string message)
         {
-            this.Write("WARNING", message);
+            this.Write("WARN", message);
         }
 
         public void Error(string message)
@@ -61,9 +66,12 @@ namespace Fuzzman.Core
 
         private void Write(string level, string message)
         {
+            string line = String.Format("[{0,5}] {1}", level, message);
             lock (this.writer)
             {
-                writer.WriteLine(String.Format("[{0,5}] {1}", level, message));
+                writer.WriteLine(line);
+                writer.Flush();
+                Console.WriteLine(line);
             }
         }
     }

@@ -30,6 +30,12 @@ namespace Fuzzman.Core.System.Mmap
 
         public MappedFileView CreateView(uint offset, uint length)
         {
+            if (length == 0)
+            {
+                UInt64 longLength;
+                Kernel32.GetFileSizeEx(this.fileHandle, out longLength);
+                length = (uint)longLength;
+            }
             return new MappedFileView(this.mappingHandle, this.mappingAccess, offset, length);
         }
 

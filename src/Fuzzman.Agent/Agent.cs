@@ -9,6 +9,7 @@ using Fuzzman.Core.Debugger;
 using Fuzzman.Core.Debugger.DebugInfo;
 using Fuzzman.Core.Debugger.Simple;
 using Fuzzman.Core.Mutator;
+using Fuzzman.Core.System.Mmap;
 
 namespace Fuzzman.Agent
 {
@@ -17,12 +18,19 @@ namespace Fuzzman.Agent
         public Agent(string configPath)
         {
             this.config = LoadConfig(configPath);
+
+            LogManager.Initialize(this.config.LogFilePath);
+            this.logger = LogManager.GetLogger("Agent");
+
+            this.ctrlCHandler = new ConsoleCancelEventHandler(this.OnControlC);
         }
 
         public void Start()
         {
             if (this.iterationThread != null)
                 return;
+
+            Console.CancelKeyPress += this.ctrlCHandler;
 
             this.logger.Info("Starting agent thread...");
             this.iterationThread = new Thread(this.IterationThreadProc);
@@ -31,19 +39,28 @@ namespace Fuzzman.Agent
 
         public void Stop()
         {
+            Console.CancelKeyPress -= this.ctrlCHandler;
+
             this.isStopping = true;
             if (this.iterationThread != null && this.iterationThread.IsAlive)
             {
+                if (this.debugger != null)
+                {
+                    this.logger.Info("Killing the target...");
+                    this.debugger.TerminateTarget();
+                }
                 this.logger.Info("Stopping agent thread...");
                 this.iterationThread.Join();
                 this.iterationThread = null;
             }
         }
 
-        private readonly ILogger logger = LogManager.GetLogger("Agent");
+        private readonly ILogger logger;
         private Configuration config = null;
+        private readonly ConsoleCancelEventHandler ctrlCHandler;
         private bool isStopping = false;
         private Thread iterationThread = null;
+        private IDebugger debugger = null;
         private readonly AutoResetEvent testCompletedEvent = new AutoResetEvent(false);
         private FaultReport report = null;
 
@@ -62,10 +79,10 @@ namespace Fuzzman.Agent
             IMutator bitFlipper = new BitFlipper(rng);
             IMutator valueSetter = new ValueSetter(rng);
 
-            IDebugger debugger = new SimpleDebugger();
-            debugger.ProcessCreatedEvent += this.OnProcessCreated;
-            debugger.ProcessExitedEvent += this.OnProcessExited;
-            debugger.ExceptionEvent += this.OnException;
+            this.debugger = new SimpleDebugger();
+            this.debugger.ProcessCreatedEvent += this.OnProcessCreated;
+            this.debugger.ProcessExitedEvent += this.OnProcessExited;
+            this.debugger.ExceptionEvent += this.OnException;
 
             this.logger.Info("*** Test sequence starting.\r\n");
             try
@@ -91,44 +108,60 @@ namespace Fuzzman.Agent
 
                     // Fuzz the sample
                     this.logger.Info("Fuzzing the sample file...");
+                    using (MappedFile mapped = new MappedFile(samplePath, FileMode.Open, FileAccess.ReadWrite))
+                    using (MappedFileView view = mapped.CreateView(0, 0))
+                    {
+                        for(int i = 0; i < 25; i++)
+                            bitFlipper.Process(view);
+                        for (int i = 0; i < 10; i++)
+                            valueSetter.Process(view);
+                    }
                     
                     // Start the target
                     string cmdLine = this.MakeTestCommandLine(samplePath);
                     this.logger.Info(String.Format("Starting the target with: {0}", cmdLine));
-                    debugger.StartTarget(cmdLine);
+                    this.testCompletedEvent.Reset();
+                    this.debugger.StartTarget(cmdLine);
 
                     // Wait for the program to complete or die.
                     this.logger.Info("Waiting for the target to die.");
                     this.testCompletedEvent.WaitOne(this.config.Agent.Timeout * 1000);
 
-                    if (debugger.IsRunning)
-                    {
-                        this.logger.Info("Timed out, killing the target.");
-                        debugger.TerminateTarget();
-                    }
-                    else
-                    {
-                        this.logger.Info("Target either crashed or exited, good.");
-                    }
-                    debugger.Stop();
-
                     // See if there was anything interesting...
-                    if (this.report != null)
+                    if (!this.isStopping)
                     {
-                        this.logger.Info("Caught a fault, saving the test data.");
-                        this.report.Generate(Path.Combine(currentTestCaseDir, "fault-report.txt"));
-                        string savedTestCaseDir = this.MakeTestCaseDir(testCaseNumber);
-                        Directory.Move(currentTestCaseDir, savedTestCaseDir);
+                        if (this.debugger.IsRunning)
+                        {
+                            this.logger.Info("Timed out, killing the target.");
+                            this.debugger.TerminateTarget();
+                        }
+                        else
+                        {
+                            this.logger.Info("Target either crashed or exited, good.");
+                        }
+                        this.debugger.Stop();
+
+                        if (this.report != null)
+                        {
+                            this.logger.Info("Caught a fault, saving the test data.");
+                            this.report.Generate(Path.Combine(currentTestCaseDir, "fault-report.txt"));
+                            string savedTestCaseDir = this.MakeTestCaseDir(testCaseNumber);
+                            Directory.Move(currentTestCaseDir, savedTestCaseDir);
+                        }
+                        else
+                        {
+                            this.logger.Info("Nothing interesting happened.");
+                        }
+
+                        this.logger.Info("*** Test case ended.\r\n");
+
+                        // Next test case
+                        testCaseNumber++;
                     }
                     else
                     {
-                        this.logger.Info("Nothing interesting happened.");
+                        this.debugger.Stop();
                     }
-
-                    this.logger.Info("*** Test case ended.\r\n");
-
-                    // Next test case
-                    testCaseNumber++;
                 }
             }
             catch (Exception ex)
@@ -138,7 +171,7 @@ namespace Fuzzman.Agent
             }
             finally
             {
-                debugger.Dispose();
+                this.debugger.Dispose();
             }
             this.logger.Info("*** Test sequence ended.\r\n");
         }
@@ -160,6 +193,13 @@ namespace Fuzzman.Agent
             builder.Replace("{TARGET}", samplePath);
 
             return builder.ToString();
+        }
+
+        private void OnControlC(object sender, ConsoleCancelEventArgs args)
+        {
+            this.logger.Info("Caught ctrl-c, stopping.");
+            args.Cancel = true;
+            this.Stop();
         }
 
         private void OnProcessCreated(IDebugger debugger, ProcessCreatedEventParams info)

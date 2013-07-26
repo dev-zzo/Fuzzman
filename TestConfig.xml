@@ -1,9 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Fuzzman xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Agent>
-	<CommandLine>CrashApp {TARGET}</CommandLine>
-	<SourceFilePath>c:\Projects\Fuzzman\README.md</SourceFilePath>
-    <TestCasesPath></TestCasesPath>
+	<CommandLine>"c:\Program Files\VideoLAN\VLC\vlc.exe" "{TARGET}"</CommandLine>
+	<SourceFilePath>z:\VM Share\VLC-3\Samples\resurrection.mov</SourceFilePath>
+    <TestCasesPath>z:\VM Share\VLC-3\Tests</TestCasesPath>
     <TestCaseTemplate>{DATETIME}-TC{TCN}</TestCaseTemplate>
+	<Timeout>90</Timeout>
   </Agent>
+  <LogFilePath>z:\VM Share\VLC-3\fuzzman.log</LogFilePath>
 </Fuzzman>
