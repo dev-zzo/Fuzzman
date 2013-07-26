@@ -12,6 +12,8 @@ namespace Fuzzman.Core.Debugger.Simple
     {
         public uint DebuggeePid { get; private set; }
 
+        public bool IsRunning { get { return this.continueDebugging; } }
+
 
         public IDictionary<uint, ThreadInfo> Threads { get { return this.threadMap; } }
 
@@ -35,12 +37,18 @@ namespace Fuzzman.Core.Debugger.Simple
 
         public void StartTarget(string commandLine)
         {
+            if (this.debuggerThread != null)
+                return;
+
             this.debuggerThread = new Thread(this.DebuggerThreadCreateProcess);
             this.debuggerThread.Start(commandLine);
         }
 
         public void AttachToTarget(uint pid)
         {
+            if (this.debuggerThread != null)
+                return;
+
             this.debuggerThread = new Thread(this.DebuggerThreadAttach);
             this.debuggerThread.Start(pid);
         }
@@ -93,8 +101,14 @@ namespace Fuzzman.Core.Debugger.Simple
             if (this.debuggerThread.IsAlive)
             {
                 this.debuggerThread.Join();
-                this.debuggerThread = null;
             }
+            this.debuggerThread = null;
+        }
+
+        public void Dispose()
+        {
+            this.TerminateTarget();
+            this.Stop();
         }
 
         #region Implementation details
@@ -163,6 +177,7 @@ namespace Fuzzman.Core.Debugger.Simple
                 Kernel32.DebugSetProcessKillOnExit(true);
 
                 this.ignoreBreakpoint = true;
+                this.continueDebugging = true;
 
                 this.DebuggeePid = (uint)procInfo.dwProcessId;
                 this.DebuggerThreadLoop();
@@ -188,6 +203,9 @@ namespace Fuzzman.Core.Debugger.Simple
                 }
 
                 Kernel32.DebugSetProcessKillOnExit(true);
+
+                this.ignoreBreakpoint = false;
+                this.continueDebugging = true;
 
                 this.DebuggeePid = pid;
                 this.DebuggerThreadLoop();
@@ -319,10 +337,10 @@ namespace Fuzzman.Core.Debugger.Simple
             ExceptionDebugInfo marshaledInfo = this.MarshalDebugInfo(info.ExceptionRecord);
             bool isFirstChance = info.dwFirstChance == 1;
 
-            this.logger.Info(String.Format("Exception in thread {0} ({1}-chance):\r\n{2}",
-                tid,
-                isFirstChance ? "first" : "second",
-                marshaledInfo.ToString()));
+            //this.logger.Info(String.Format("Exception in thread {0} ({1}-chance):\r\n{2}",
+            //    tid,
+            //    isFirstChance ? "first" : "second",
+            //    marshaledInfo.ToString()));
 
             if (this.ignoreBreakpoint && marshaledInfo.ExceptionCode == EXCEPTION_CODE.EXCEPTION_BREAKPOINT)
             {

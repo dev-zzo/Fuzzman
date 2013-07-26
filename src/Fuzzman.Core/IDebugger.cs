@@ -5,9 +5,11 @@ using Fuzzman.Core.Interop;
 
 namespace Fuzzman.Core
 {
-    public interface IDebugger
+    public interface IDebugger : IDisposable
     {
         uint DebuggeePid { get; }
+
+        bool IsRunning { get; }
 
 
         IDictionary<uint, ThreadInfo> Threads { get; }
@@ -39,5 +41,7 @@ namespace Fuzzman.Core
         CONTEXT GetThreadContext(uint tid);
 
         LDT_ENTRY GetThreadLdtEntry(uint tid, uint selector);
+
+        void Stop();
     }
 }

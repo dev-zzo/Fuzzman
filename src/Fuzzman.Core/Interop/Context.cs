@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System;
 
 // TODO: 64-bit compatibility!
 
@@ -68,5 +69,12 @@ namespace Fuzzman.Core.Interop
         // Retrieved by CONTEXT_EXTENDED_REGISTERS
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 512)]
         public byte[] ExtendedRegisters;
+
+        public override string ToString()
+        {
+            return String.Format("EAX: {0:X8} EBX: {1:X8} ECX: {2:X8} EDX: {3:X8}\r\nESP: {4:X8} EBP: {5:X8} ESI: {6:X8} EDI: {7:X8}\r\n",
+                this.Eax, this.Ebx, this.Ecx, this.Edx,
+                this.Esp, this.Ebp, this.Esi, this.Edi);
+        }
     }
 }

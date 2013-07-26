@@ -22,17 +22,10 @@ namespace Fuzzman.Agent
     {
         static void Main(string[] args)
         {
-            MappedFile f = new MappedFile("CrashApp.exe", System.IO.FileMode.Open, System.IO.FileAccess.ReadWrite);
-            MappedFileView v = f.CreateView(0, 1024);
-            uint mz;
-            v.Read(0, out mz);
-
-            Agent a = new Agent("testtest");
-
-            SimpleDebugger d = new SimpleDebugger();
-            d.StartTarget("CrashApp.exe");
-            Thread.Sleep(100000);
-            d.Stop();
+            Agent a = new Agent("TestConfig.xml");
+            a.Start();
+            Thread.Sleep(5000000);
+            a.Stop();
         }
     }
 }

@@ -12,19 +12,22 @@ namespace Fuzzman.Agent.Config
         public AgentConfiguration()
         {
             this.TestCasesPath = "";
-            this.TestCaseTemplate = "TC{id}";
+            this.TestCaseTemplate = "{DATETIME}-TC{TCN}";
         }
 
         /// <summary>
         /// What to execute as a test subject.
         /// </summary>
-        [XmlElement(IsNullable = false)]
         public string CommandLine { get; set; }
+
+        /// <summary>
+        /// Target timeout, in seconds.
+        /// </summary>
+        public int Timeout { get; set; }
 
         /// <summary>
         /// Where to get the source file to be fuzzed.
         /// </summary>
-        [XmlElement(IsNullable = false)]
         public string SourceFilePath { get; set; }
 
         /// <summary>

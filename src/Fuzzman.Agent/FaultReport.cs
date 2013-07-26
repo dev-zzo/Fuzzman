@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Fuzzman.Core.Interop;
 using System.IO;
+using Fuzzman.Core.Interop;
 
 namespace Fuzzman.Agent
 {
@@ -26,12 +23,15 @@ namespace Fuzzman.Agent
 
         public IntPtr OffendingVA;
 
+        public string RegisterDump;
+
         public override void Generate(string path)
         {
             base.Generate(path);
             using (FileStream stream = new FileStream(path, FileMode.Append))
             using (StreamWriter writer = new StreamWriter(stream))
             {
+                writer.WriteLine("Registers:\r\n{0}", this.RegisterDump);
                 writer.WriteLine("Fault type: uncaught exception");
                 writer.WriteLine("Exception code: {0:X8} ({1})", (uint)this.ExceptionCode, this.ExceptionCode);
                 writer.WriteLine("Exception addr: {0:X8}", (uint)this.OffendingVA);
