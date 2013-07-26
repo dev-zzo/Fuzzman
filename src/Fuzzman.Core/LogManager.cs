@@ -26,6 +26,8 @@ namespace Fuzzman.Core
         public LameFileLogger(string path)
         {
             this.path = path;
+            this.stream = new FileStream(this.path, FileMode.Append);
+            this.writer = new StreamWriter(this.stream);
         }
 
         public void Debug(string message)
@@ -54,15 +56,14 @@ namespace Fuzzman.Core
         }
 
         private string path;
+        private FileStream stream;
+        private StreamWriter writer;
 
         private void Write(string level, string message)
         {
-            using (FileStream stream = new FileStream(this.path, FileMode.Append))
+            lock (this.writer)
             {
-                using (StreamWriter writer = new StreamWriter(stream))
-                {
-                    writer.WriteLine(String.Format("[{0,5}] {1}", level, message));
-                }
+                writer.WriteLine(String.Format("[{0,5}] {1}", level, message));
             }
         }
     }
