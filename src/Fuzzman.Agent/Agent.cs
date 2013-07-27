@@ -39,8 +39,9 @@ namespace Fuzzman.Agent
 
         public void Stop()
         {
-            Console.CancelKeyPress -= this.ctrlCHandler;
+            //Console.CancelKeyPress -= this.ctrlCHandler;
 
+            this.logger.Info("Stopping agent thread...");
             this.isStopping = true;
             if (this.iterationThread != null && this.iterationThread.IsAlive)
             {
@@ -49,7 +50,7 @@ namespace Fuzzman.Agent
                     this.logger.Info("Killing the target...");
                     this.debugger.TerminateTarget();
                 }
-                this.logger.Info("Stopping agent thread...");
+                this.logger.Info("Waiting for agent thread...");
                 this.iterationThread.Join();
                 this.iterationThread = null;
             }
@@ -75,10 +76,7 @@ namespace Fuzzman.Agent
 
         private void IterationThreadProc()
         {
-            IRandom rng = new StdRandom(12345);
-            IMutator bitFlipper = new BitFlipper(rng);
-            IMutator valueSetter = new ValueSetter(rng);
-
+            IFuzzer fuzzer = new DumbFuzzer(666);
             this.debugger = new SimpleDebugger();
             this.debugger.ProcessCreatedEvent += this.OnProcessCreated;
             this.debugger.ProcessExitedEvent += this.OnProcessExited;
@@ -108,14 +106,7 @@ namespace Fuzzman.Agent
 
                     // Fuzz the sample
                     this.logger.Info("Fuzzing the sample file...");
-                    using (MappedFile mapped = new MappedFile(samplePath, FileMode.Open, FileAccess.ReadWrite))
-                    using (MappedFileView view = mapped.CreateView(0, 0))
-                    {
-                        for(int i = 0; i < 25; i++)
-                            bitFlipper.Process(view);
-                        for (int i = 0; i < 10; i++)
-                            valueSetter.Process(view);
-                    }
+                    fuzzer.Process(samplePath);
                     
                     // Start the target
                     string cmdLine = this.MakeTestCommandLine(samplePath);
@@ -182,6 +173,7 @@ namespace Fuzzman.Agent
 
             builder.Replace("{TCN}", testCaseNumber.ToString("D8"));
             builder.Replace("{DATETIME}", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
+            builder.Replace("{SUMMARY}", this.report.GetSummary());
 
             return Path.Combine(this.config.Agent.TestCasesPath, builder.ToString());
         }
@@ -198,7 +190,7 @@ namespace Fuzzman.Agent
         private void OnControlC(object sender, ConsoleCancelEventArgs args)
         {
             this.logger.Info("Caught ctrl-c, stopping.");
-            args.Cancel = true;
+            //args.Cancel = true;
             this.Stop();
         }
 

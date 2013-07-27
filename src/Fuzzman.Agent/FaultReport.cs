@@ -6,6 +6,11 @@ namespace Fuzzman.Agent
 {
     public class FaultReport
     {
+        public virtual string GetSummary()
+        {
+            return "UNKNOWN";
+        }
+
         public virtual void Generate(string path)
         {
             using (FileStream stream = new FileStream(path, FileMode.Append))
@@ -24,6 +29,11 @@ namespace Fuzzman.Agent
         public IntPtr OffendingVA;
 
         public string RegisterDump;
+
+        public override string GetSummary()
+        {
+            return String.Format("EXCEPTION_{0:X8}_{1:X8}", this.ExceptionCode, this.OffendingVA);
+        }
 
         public override void Generate(string path)
         {
@@ -44,6 +54,11 @@ namespace Fuzzman.Agent
         public string AccessType;
 
         public IntPtr TargetVA;
+
+        public override string GetSummary()
+        {
+            return String.Format("AV_{0}_{1:X8}_{2:X8}", this.AccessType.ToUpper(), this.OffendingVA, this.TargetVA);
+        }
 
         public override void Generate(string path)
         {

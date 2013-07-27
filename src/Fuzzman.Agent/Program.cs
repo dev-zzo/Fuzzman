@@ -24,7 +24,10 @@ namespace Fuzzman.Agent
         {
             Agent a = new Agent("TestConfig.xml");
             a.Start();
-            Thread.Sleep(5000000);
+            while (true)
+            {
+                Thread.Sleep(5000000);
+            }
             a.Stop();
         }
     }

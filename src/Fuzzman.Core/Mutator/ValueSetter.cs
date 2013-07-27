@@ -16,9 +16,10 @@ namespace Fuzzman.Core.Mutator
         {
             uint size = (uint)(1 << (int)rng.GetNext(0, 4)) - 1;
             uint offset = rng.GetNext(0, view.Length - size);
+            byte value = (byte)(rng.GetNext(0, 256) > 128 ? 0xFF : 0x00);
             for (uint i = 0; i <= size; ++i)
             {
-                view[offset + i] = (byte)(rng.GetNext(0, 256) > 128 ? 0xFF : 0x00);
+                view[offset + i] = value;
             }
         }
 

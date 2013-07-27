@@ -98,7 +98,7 @@ namespace Fuzzman.Core.Debugger.Simple
         {
             this.continueDebugging = false;
 
-            if (this.debuggerThread.IsAlive)
+            if (this.debuggerThread!= null && this.debuggerThread.IsAlive)
             {
                 this.debuggerThread.Join();
             }

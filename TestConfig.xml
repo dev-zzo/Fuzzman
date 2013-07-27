@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Fuzzman xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Agent>
-	<CommandLine>"c:\Program Files\VideoLAN\VLC\vlc.exe" "{TARGET}"</CommandLine>
-	<SourceFilePath>z:\VM Share\VLC-3\Samples\resurrection.mov</SourceFilePath>
-    <TestCasesPath>z:\VM Share\VLC-3\Tests</TestCasesPath>
+	<CommandLine>"c:\Programs\XnView\xnview.exe" "{TARGET}"</CommandLine>
+	<SourceFilePath>d:\Fuzzing\Samples\GIF\DancingPeaks.gif</SourceFilePath>
+    <TestCasesPath>d:\Fuzzing\Tests</TestCasesPath>
     <TestCaseTemplate>{DATETIME}-TC{TCN}</TestCaseTemplate>
-	<Timeout>90</Timeout>
+	<Timeout>10</Timeout>
   </Agent>
-  <LogFilePath>z:\VM Share\VLC-3\fuzzman.log</LogFilePath>
+  <LogFilePath>d:\Fuzzing\Tests\fuzzman.log</LogFilePath>
 </Fuzzman>
