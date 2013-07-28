@@ -2,10 +2,10 @@
 <Fuzzman xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Agent>
 	<CommandLine>"c:\Programs\XnView\xnview.exe" "{TARGET}"</CommandLine>
-	<SourceFilePath>d:\Fuzzing\Samples\GIF\DancingPeaks.gif</SourceFilePath>
-    <TestCasesPath>d:\Fuzzing\Tests</TestCasesPath>
-    <TestCaseTemplate>{DATETIME}-TC{TCN}</TestCaseTemplate>
-	<Timeout>10</Timeout>
+	<SourceFilePath>d:\VirtualBox VMs\Shared\Samples\TIFF\Vermont_foliage_LZW.tif</SourceFilePath>
+    <TestCasesPath>Tests</TestCasesPath>
+    <TestCaseTemplate>{SUMMARY}-TC{TCN}</TestCaseTemplate>
+	<Timeout>2</Timeout>
   </Agent>
-  <LogFilePath>d:\Fuzzing\Tests\fuzzman.log</LogFilePath>
+  <LogFilePath>Tests\fuzzman.log</LogFilePath>
 </Fuzzman>

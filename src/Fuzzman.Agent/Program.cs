@@ -1,6 +1,8 @@
 ﻿using System.Threading;
 using Fuzzman.Core.Debugger.Simple;
 using Fuzzman.Core.System.Mmap;
+using Fuzzman.Agent.Config;
+using System;
 
 namespace Fuzzman.Agent
 {
@@ -22,7 +24,18 @@ namespace Fuzzman.Agent
     {
         static void Main(string[] args)
         {
-            Agent a = new Agent("TestConfig.xml");
+            Console.WriteLine("Fuzzman version 1 alpha 1.");
+            Console.WriteLine();
+
+            Options options = new Options();
+            CommandLine.Parser parser = new CommandLine.Parser();
+            if (!parser.ParseArguments(args, options))
+            {
+                Console.WriteLine("Failed to parse command line options.");
+                return;
+            }
+
+            Agent a = new Agent(options);
             a.Start();
             while (true)
             {

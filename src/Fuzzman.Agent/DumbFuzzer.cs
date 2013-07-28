@@ -9,7 +9,7 @@ namespace Fuzzman.Agent
     {
         public DumbFuzzer(int seed = 12345)
         {
-            this.rng = new StdRandom(12345);
+            this.rng = new StdRandom(seed);
             this.bitFlipper = new BitFlipper(rng);
             this.valueSetter = new ValueSetter(rng);
         }
@@ -19,8 +19,11 @@ namespace Fuzzman.Agent
             using (MappedFile mapped = new MappedFile(target, FileMode.Open, FileAccess.ReadWrite))
             using (MappedFileView view = mapped.CreateView(0, 0))
             {
+                int max;
+                max = (int)this.rng.GetNext(0, 20);
                 for (int i = 0; i < 10; i++)
                     bitFlipper.Process(view);
+                max = (int)this.rng.GetNext(0, 3);
                 for (int i = 0; i < 2; i++)
                     valueSetter.Process(view);
             }

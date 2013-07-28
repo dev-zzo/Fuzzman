@@ -32,7 +32,7 @@ namespace Fuzzman.Agent
 
         public override string GetSummary()
         {
-            return String.Format("EXCEPTION_{0:X8}_{1:X8}", this.ExceptionCode, this.OffendingVA);
+            return String.Format("EXCEPTION_{0:X8}_{1:X8}", (uint)this.ExceptionCode, (uint)this.OffendingVA);
         }
 
         public override void Generate(string path)
@@ -57,7 +57,7 @@ namespace Fuzzman.Agent
 
         public override string GetSummary()
         {
-            return String.Format("AV_{0}_{1:X8}_{2:X8}", this.AccessType.ToUpper(), this.OffendingVA, this.TargetVA);
+            return String.Format("AV_{0}_{1:X8}_{2:X8}", this.AccessType.ToUpper(), (uint)this.OffendingVA, (uint)this.TargetVA);
         }
 
         public override void Generate(string path)
