@@ -6,6 +6,11 @@ using System.Threading;
 using Fuzzman.Core.Debugger.DebugInfo;
 using Fuzzman.Core.Interop;
 
+// Supplemental reading:
+// http://www.alex-ionescu.com/dbgk-1.pdf
+// http://www.alex-ionescu.com/dbgk-2.pdf
+// http://www.alex-ionescu.com/dbgk-3.pdf
+
 namespace Fuzzman.Core.Debugger.Simple
 {
     public sealed class SimpleDebugger : IDebugger
