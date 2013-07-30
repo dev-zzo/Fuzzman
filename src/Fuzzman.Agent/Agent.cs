@@ -2,27 +2,21 @@
 using System.IO;
 using System.Text;
 using System.Threading;
-using System.Xml.Serialization;
 using Fuzzman.Agent.Config;
 using Fuzzman.Core;
 using Fuzzman.Core.Debugger;
 using Fuzzman.Core.Debugger.DebugInfo;
 using Fuzzman.Core.Debugger.Simple;
-using Fuzzman.Core.Mutator;
-using Fuzzman.Core.System.Mmap;
+using Fuzzman.Core.Monitor;
 
 namespace Fuzzman.Agent
 {
     public class Agent : IAgent
     {
-        public Agent(Options options)
+        public Agent(Options options, AgentConfiguration config)
         {
             this.options = options;
-            this.config = LoadConfig(options.XmlConfigPath);
-
-            LogManager.Initialize(this.config.LogFilePath);
-            this.logger = LogManager.GetLogger("Agent");
-
+            this.config = config;
             this.ctrlCHandler = new ConsoleCancelEventHandler(this.OnControlC);
         }
 
@@ -40,11 +34,9 @@ namespace Fuzzman.Agent
 
         public void Stop()
         {
-            //Console.CancelKeyPress -= this.ctrlCHandler;
-
             this.logger.Info("Stopping agent thread...");
             this.isStopping = true;
-            this.testCompletedEvent.Set();
+            this.processExitedEvent.Set();
             if (this.iterationThread != null && this.iterationThread.IsAlive)
             {
                 if (this.debugger != null)
@@ -58,24 +50,16 @@ namespace Fuzzman.Agent
             }
         }
 
-        private readonly ILogger logger;
+        private readonly ILogger logger = LogManager.GetLogger("Agent");
         private readonly Options options = null;
-        private readonly Configuration config = null;
+        private readonly AgentConfiguration config = null;
         private readonly ConsoleCancelEventHandler ctrlCHandler;
         private bool isStopping = false;
         private Thread iterationThread = null;
         private IDebugger debugger = null;
-        private readonly AutoResetEvent testCompletedEvent = new AutoResetEvent(false);
+        private readonly AutoResetEvent processCreatedEvent = new AutoResetEvent(false);
+        private readonly AutoResetEvent processExitedEvent = new AutoResetEvent(false);
         private FaultReport report = null;
-
-        private static Configuration LoadConfig(string path)
-        {
-            XmlSerializer serializer = new XmlSerializer(typeof(Configuration));
-            using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read))
-            {
-                return (Configuration)serializer.Deserialize(stream);
-            }
-        }
 
         private void IterationThreadProc()
         {
@@ -83,7 +67,7 @@ namespace Fuzzman.Agent
             if (seed == 0)
                 seed = new Random().Next();
             IFuzzer fuzzer = new DumbFuzzer(seed);
-            this.logger.Info(String.Format("Using RGN seed {0}.", seed));
+            this.logger.Info(String.Format("Using RNG seed {0}.", seed));
 
             this.debugger = new SimpleDebugger();
             this.debugger.ProcessCreatedEvent += this.OnProcessCreated;
@@ -100,8 +84,8 @@ namespace Fuzzman.Agent
 
                     this.logger.Info(String.Format("*** Test case {0} starting.", testCaseNumber));
 
-                    string currentTestCaseDir = Path.Combine(this.config.Agent.TestCasesPath, "CURRENT");
-                    string sampleFileName = Path.GetFileName(this.config.Agent.SourceFilePath);
+                    string currentTestCaseDir = Path.Combine(this.config.TestCasesPath, "CURRENT");
+                    string sampleFileName = Path.GetFileName(this.config.SourceFilePath);
                     string samplePath = Path.Combine(currentTestCaseDir, sampleFileName);
 
                     // Set up the test case
@@ -168,7 +152,7 @@ namespace Fuzzman.Agent
 
             // Copy the sample file
             this.logger.Info("Preparing the sample file...");
-            File.Copy(this.config.Agent.SourceFilePath, samplePath);
+            File.Copy(this.config.SourceFilePath, samplePath);
 
             // Fuzz the sample
             this.logger.Info("Fuzzing the sample file...");
@@ -177,15 +161,25 @@ namespace Fuzzman.Agent
 
         private void TestCaseRunTarget(string samplePath)
         {
+            this.processCreatedEvent.Reset();
+            this.processExitedEvent.Reset();
+
             // Start the target process.
             string cmdLine = this.MakeTestCommandLine(samplePath);
             this.logger.Info(String.Format("Starting the target with: {0}", cmdLine));
-            this.testCompletedEvent.Reset();
-            this.debugger.StartTarget(cmdLine);
+            this.debugger.CreateTarget(cmdLine);
+
+            // Sync to process creation.
+            this.processCreatedEvent.WaitOne();
+
+            ProcessIdleMonitor mon = new ProcessIdleMonitor(this.debugger.DebuggeePid);
+            mon.IdleEvent += new ProcessIdleEventHandler(this.OnProcessIdle);
+            mon.Start();
 
             // Wait for the program to complete or die.
             this.logger.Info("Waiting for the target to die.");
-            this.testCompletedEvent.WaitOne(this.config.Agent.Timeout * 1000);
+            this.processExitedEvent.WaitOne(this.config.Timeout * 1000);
+            mon.Stop();
 
             // See if we timed out waiting for the fun.
             if (this.debugger.IsRunning)
@@ -194,6 +188,7 @@ namespace Fuzzman.Agent
                 this.debugger.TerminateTarget();
                 Thread.Sleep(1000);
             }
+
             this.debugger.Stop();
         }
 
@@ -208,18 +203,18 @@ namespace Fuzzman.Agent
 
         private string MakeTestCaseDir(int testCaseNumber)
         {
-            StringBuilder builder = new StringBuilder(this.config.Agent.TestCaseTemplate, 256);
+            StringBuilder builder = new StringBuilder(this.config.TestCaseTemplate, 256);
 
             builder.Replace("{TCN}", testCaseNumber.ToString("D8"));
             builder.Replace("{DATETIME}", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
             builder.Replace("{SUMMARY}", this.report.GetSummary());
 
-            return Path.Combine(this.config.Agent.TestCasesPath, builder.ToString());
+            return Path.Combine(this.config.TestCasesPath, builder.ToString());
         }
 
         private string MakeTestCommandLine(string samplePath)
         {
-            StringBuilder builder = new StringBuilder(this.config.Agent.CommandLine, 256);
+            StringBuilder builder = new StringBuilder(this.config.CommandLine, 256);
 
             builder.Replace("{TARGET}", samplePath);
 
@@ -229,30 +224,25 @@ namespace Fuzzman.Agent
         private void OnControlC(object sender, ConsoleCancelEventArgs args)
         {
             this.logger.Info("Caught ctrl-c, stopping.");
-            //args.Cancel = true;
             this.Stop();
         }
 
         private void OnProcessCreated(IDebugger debugger, ProcessCreatedEventParams info)
         {
             this.logger.Info(String.Format("Target process started, pid {0}.", info.ProcessId));
+            this.processCreatedEvent.Set();
         }
 
         private void OnProcessExited(IDebugger debugger, ProcessExitedEventParams info)
         {
             this.logger.Info("Target process has exited.");
-            this.testCompletedEvent.Set();
+            this.processExitedEvent.Set();
         }
 
         private void OnException(IDebugger debugger, ExceptionEventParams info)
         {
             this.logger.Info(String.Format("Target process has raised an exception {0:X8}.", (uint)info.Info.ExceptionCode));
-            this.BuildExceptionFaultReport(debugger, info);
-            debugger.TerminateTarget();
-        }
 
-        private void BuildExceptionFaultReport(IDebugger debugger, ExceptionEventParams info)
-        {
             ExceptionFaultReport thisReport = new ExceptionFaultReport();
 
             AccessViolationDebugInfo avDebugInfo = info.Info as AccessViolationDebugInfo;
@@ -269,6 +259,14 @@ namespace Fuzzman.Agent
             thisReport.RegisterDump = debugger.GetThreadContext(info.ThreadId).ToString();
 
             this.report = thisReport;
+
+            this.debugger.TerminateTarget();
+        }
+
+        private void OnProcessIdle()
+        {
+            this.logger.Info("Target process detected to be idle, killing.");
+            this.debugger.TerminateTarget();
         }
     }
 }

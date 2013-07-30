@@ -32,7 +32,7 @@ namespace Fuzzman.Core
         event ProcessExitedEventHandler ProcessExitedEvent;
 
 
-        void StartTarget(string commandLine);
+        void CreateTarget(string commandLine);
 
         void AttachToTarget(uint pid);
 

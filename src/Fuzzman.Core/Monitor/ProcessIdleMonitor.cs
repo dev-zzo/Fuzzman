@@ -4,27 +4,22 @@ using Fuzzman.Core.Interop;
 
 namespace Fuzzman.Core.Monitor
 {
-    /// <summary>
-    /// Report the CPU time usage.
-    /// All times are reported as delta values referring to the previous event.
-    /// </summary>
-    /// <param name="kernelDelta">Kernel mode time usage, us.</param>
-    /// <param name="userDelta">User mode time usage, us.</param>
-    public delegate void CpuUsageMonitorEventHandler(UInt64 kernelDelta, UInt64 userDelta);
+    public delegate void ProcessIdleEventHandler();
 
-    /// <summary>
-    /// Monitors the CPU usage times of a given process.
-    /// </summary>
-    public class CpuUsageMonitor
+    public class ProcessIdleMonitor
     {
-        public CpuUsageMonitor(uint processId)
+        public ProcessIdleMonitor(uint processId)
         {
             this.processId = processId;
+            this.PollInterval = 100;
+            this.MaxIdleCount = 5;
         }
 
         public int PollInterval { get; set; }
 
-        public event CpuUsageMonitorEventHandler MonitorEvent;
+        public int MaxIdleCount { get; set; }
+
+        public event ProcessIdleEventHandler IdleEvent;
 
         public void Start()
         {
@@ -59,6 +54,8 @@ namespace Fuzzman.Core.Monitor
             UInt64 kernelTimeUpdated;
             UInt64 userTimePrevious = 0;
             UInt64 userTimeUpdated;
+            UInt64 timeDeltaThreshold = 50;
+            int inactivityCounter = 0;
 
             while (!this.isStopping)
             {
@@ -75,9 +72,22 @@ namespace Fuzzman.Core.Monitor
                 UInt64 kernelTimeDelta = kernelTimeUpdated - kernelTimePrevious;
                 UInt64 userTimeDelta = userTimeUpdated - userTimePrevious;
 
-                if (this.MonitorEvent != null)
+                if (kernelTimeDelta < timeDeltaThreshold && userTimeDelta < timeDeltaThreshold)
                 {
-                    this.MonitorEvent(kernelTimeDelta / 10, userTimeDelta / 10);
+                    inactivityCounter++;
+
+                    if (inactivityCounter >= this.MaxIdleCount)
+                    {
+                        this.isStopping = true;
+                        if (this.IdleEvent != null)
+                        {
+                            this.IdleEvent();
+                        }
+                    }
+                }
+                else
+                {
+                    inactivityCounter = 0;
                 }
 
                 kernelTimePrevious = kernelTimeUpdated;

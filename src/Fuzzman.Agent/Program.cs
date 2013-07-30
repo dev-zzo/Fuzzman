@@ -1,8 +1,7 @@
-﻿using System.Threading;
-using Fuzzman.Core.Debugger.Simple;
-using Fuzzman.Core.System.Mmap;
+﻿using System;
+using System.Threading;
 using Fuzzman.Agent.Config;
-using System;
+using Fuzzman.Core;
 
 namespace Fuzzman.Agent
 {
@@ -35,7 +34,11 @@ namespace Fuzzman.Agent
                 return;
             }
 
-            Agent a = new Agent(options);
+            Configuration config = Configuration.LoadConfig(options.XmlConfigPath);
+
+            LogManager.Initialize(config.LogFilePath);
+
+            Agent a = new Agent(options, config.Agent);
             a.Start();
             while (true)
             {
