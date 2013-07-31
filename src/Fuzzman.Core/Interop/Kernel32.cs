@@ -205,7 +205,7 @@ namespace Fuzzman.Core.Interop
 
         #region Debugging
 
-        [DllImport("kernel32.dll", EntryPoint = "WaitForDebugEvent")]
+        [DllImport("kernel32.dll", EntryPoint = "WaitForDebugEvent", SetLastError = true)]
         public static extern bool WaitForDebugEvent(
             IntPtr lpDebugEvent,
             uint dwMilliseconds);
