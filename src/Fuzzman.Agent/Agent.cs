@@ -66,7 +66,8 @@ namespace Fuzzman.Agent
             int seed = options.RandomSeed;
             if (seed == 0)
                 seed = new Random().Next();
-            IFuzzer fuzzer = new DumbFuzzer(seed);
+            IRandom rng = new StdRandom(seed);
+            IFuzzer fuzzer = new DumbFuzzer(rng);
             this.logger.Info(String.Format("Using RNG seed {0}.", seed));
 
             this.debugger = new SimpleDebugger();
@@ -84,12 +85,16 @@ namespace Fuzzman.Agent
 
                     this.logger.Info(String.Format("*** Test case {0} starting.", testCaseNumber));
 
+                    uint sourceIndex = rng.GetNext(0, (uint)this.config.Sources.Length);
+                    string currentSource = this.config.Sources[sourceIndex];
+                    this.logger.Info(String.Format("Using source: {0}", currentSource));
+
                     string currentTestCaseDir = Path.Combine(this.config.TestCasesPath, "CURRENT");
-                    string sampleFileName = Path.GetFileName(this.config.SourceFilePath);
+                    string sampleFileName = Path.GetFileName(currentSource);
                     string samplePath = Path.Combine(currentTestCaseDir, sampleFileName);
 
                     // Set up the test case
-                    this.TestCaseSetup(fuzzer, currentTestCaseDir, samplePath);
+                    this.TestCaseSetup(fuzzer, currentTestCaseDir, currentSource, samplePath);
                     
                     // Start the target
                     if (!skipThis)
@@ -141,7 +146,7 @@ namespace Fuzzman.Agent
             }
         }
 
-        private void TestCaseSetup(IFuzzer fuzzer, string currentTestCaseDir, string samplePath)
+        private void TestCaseSetup(IFuzzer fuzzer, string currentTestCaseDir, string sourcePath, string samplePath)
         {
             // Make the test case dir
             if (Directory.Exists(currentTestCaseDir))
@@ -152,7 +157,7 @@ namespace Fuzzman.Agent
 
             // Copy the sample file
             this.logger.Info("Preparing the sample file...");
-            File.Copy(this.config.SourceFilePath, samplePath);
+            File.Copy(sourcePath, samplePath);
 
             // Fuzz the sample
             this.logger.Info("Fuzzing the sample file...");
@@ -174,6 +179,7 @@ namespace Fuzzman.Agent
 
             ProcessIdleMonitor mon = new ProcessIdleMonitor(this.debugger.DebuggeePid);
             mon.IdleEvent += new ProcessIdleEventHandler(this.OnProcessIdle);
+            mon.MaxIdleCount = 25;
             mon.Start();
 
             // Wait for the program to complete or die.

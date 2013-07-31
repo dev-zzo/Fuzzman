@@ -7,9 +7,9 @@ namespace Fuzzman.Agent
 {
     class DumbFuzzer : IFuzzer
     {
-        public DumbFuzzer(int seed = 12345)
+        public DumbFuzzer(IRandom rng)
         {
-            this.rng = new StdRandom(seed);
+            this.rng = rng;
             this.bitFlipper = new BitFlipper(rng);
             this.valueSetter = new ValueSetter(rng);
         }

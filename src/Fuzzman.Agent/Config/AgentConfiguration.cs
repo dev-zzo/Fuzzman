@@ -27,9 +27,10 @@ namespace Fuzzman.Agent.Config
         public int Timeout { get; set; }
 
         /// <summary>
-        /// Where to get the source file to be fuzzed.
+        /// Where to get the source files to be fuzzed.
         /// </summary>
-        public string SourceFilePath { get; set; }
+        [XmlArrayItem("SourceFilePath")]
+        public string[] Sources { get; set; }
 
         /// <summary>
         /// Where to keep the test cases.
