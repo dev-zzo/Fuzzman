@@ -14,6 +14,7 @@ namespace Fuzzman.Agent.Config
             this.TestCasesPath = "";
             this.TestCaseTemplate = "{DATETIME}-TC{TCN}";
             this.Timeout = 30;
+            this.RerunCount = 10;
         }
 
         /// <summary>
@@ -25,6 +26,8 @@ namespace Fuzzman.Agent.Config
         /// Target timeout, in seconds.
         /// </summary>
         public int Timeout { get; set; }
+
+        public int RerunCount { get; set; }
 
         /// <summary>
         /// Where to get the source files to be fuzzed.

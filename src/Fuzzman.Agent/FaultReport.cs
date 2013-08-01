@@ -16,6 +16,7 @@ namespace Fuzzman.Agent
             using (FileStream stream = new FileStream(path, FileMode.Append))
             using (StreamWriter writer = new StreamWriter(stream))
             {
+                writer.WriteLine();
                 writer.WriteLine("**** FAULT REPORT ****");
                 writer.WriteLine();
             }

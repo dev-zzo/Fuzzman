@@ -140,7 +140,7 @@ namespace Fuzzman.Core.Debugger.Simple
         private Thread debuggerThread = null;
         private Exception debuggerException = null;
         private bool continueDebugging = true;
-        private bool ignoreFirstBreakpoint = false;
+        private int ignoreBreakpointCounter = 0;
 
         private void HandleDebuggerException(Exception ex)
         {
@@ -158,6 +158,7 @@ namespace Fuzzman.Core.Debugger.Simple
                 string commandLine = (string)p;
 
                 STARTUPINFO startupInfo = new STARTUPINFO();
+                startupInfo.cb = Marshal.SizeOf(startupInfo);
                 PROCESS_INFORMATION procInfo = new PROCESS_INFORMATION();
 
                 bool result = Kernel32.CreateProcess(
@@ -166,7 +167,7 @@ namespace Fuzzman.Core.Debugger.Simple
                     IntPtr.Zero, // lpProcessAttributes 
                     IntPtr.Zero, // lpThreadAttributes 
                     false, // bInheritHandles 
-                    ProcessCreationFlags.DEBUG_PROCESS | ProcessCreationFlags.DEBUG_ONLY_THIS_PROCESS, // dwCreationFlags
+                    ProcessCreationFlags.DEBUG_PROCESS, // dwCreationFlags
                     IntPtr.Zero, // lpEnvironment 
                     null, // lpCurrentDirectory 
                     ref startupInfo, // lpStartupInfo 
@@ -181,9 +182,6 @@ namespace Fuzzman.Core.Debugger.Simple
                 Kernel32.CloseHandle(procInfo.hThread);
                 Kernel32.CloseHandle(procInfo.hProcess);
                 Kernel32.DebugSetProcessKillOnExit(true);
-
-                this.ignoreFirstBreakpoint = true;
-                this.continueDebugging = true;
 
                 this.DebuggeePid = (uint)procInfo.dwProcessId;
                 this.DebuggerThreadLoop();
@@ -210,9 +208,6 @@ namespace Fuzzman.Core.Debugger.Simple
 
                 Kernel32.DebugSetProcessKillOnExit(true);
 
-                this.ignoreFirstBreakpoint = false;
-                this.continueDebugging = true;
-
                 this.DebuggeePid = pid;
                 this.DebuggerThreadLoop();
             }
@@ -225,6 +220,9 @@ namespace Fuzzman.Core.Debugger.Simple
         private void DebuggerThreadLoop()
         {
             this.logger.Info("Debugger thread enters main loop.");
+
+            this.ignoreBreakpointCounter = 0;
+            this.continueDebugging = true;
 
             int debugEventBufferLength = Marshal.SizeOf(typeof(DEBUG_EVENT)) + Marshal.SizeOf(typeof(EXCEPTION_DEBUG_INFO));
             IntPtr debugEventBuffer = Marshal.AllocHGlobal(debugEventBufferLength);
@@ -266,6 +264,7 @@ namespace Fuzzman.Core.Debugger.Simple
                                 {
                                     CREATE_PROCESS_DEBUG_INFO info = (CREATE_PROCESS_DEBUG_INFO)Marshal.PtrToStructure(debugEventUnion, typeof(CREATE_PROCESS_DEBUG_INFO));
                                     this.OnCreateProcessDebugEvent(processId, threadId, info);
+                                    this.ignoreBreakpointCounter++;
                                     break;
                                 }
                             case DebugEventType.EXIT_THREAD_DEBUG_EVENT:
@@ -338,9 +337,9 @@ namespace Fuzzman.Core.Debugger.Simple
             ExceptionDebugInfo convertedInfo = this.ConvertDebugInfo(info.ExceptionRecord);
             bool isFirstChance = info.dwFirstChance != 0;
 
-            if (this.ignoreFirstBreakpoint && convertedInfo.ExceptionCode == EXCEPTION_CODE.EXCEPTION_BREAKPOINT)
+            if (this.ignoreBreakpointCounter > 0 && convertedInfo.ExceptionCode == EXCEPTION_CODE.EXCEPTION_BREAKPOINT)
             {
-                this.ignoreFirstBreakpoint = false;
+                this.ignoreBreakpointCounter--;
                 return true;
             }
 
@@ -359,6 +358,7 @@ namespace Fuzzman.Core.Debugger.Simple
 
         private void OnCreateThreadDebugEvent(uint pid, uint tid, CREATE_THREAD_DEBUG_INFO info)
         {
+            this.logger.Debug(String.Format("Thread {0} created.", tid));
             // Track the thread.
             // NOTE: Thread handle will be closed automatically by DbgSs.
             ThreadInfo threadInfo = new ThreadInfo();
@@ -377,10 +377,9 @@ namespace Fuzzman.Core.Debugger.Simple
 
         private void OnCreateProcessDebugEvent(uint pid, uint tid, CREATE_PROCESS_DEBUG_INFO info)
         {
-            PROCESS_BASIC_INFORMATION pbi = NtdllHelpers.NtQueryProcessBasicInformation(info.hProcess);
+            this.logger.Debug(String.Format("Process {0} created.", pid));
 
-            // TESTING ONLY
-            NtdllHelpers.NtQuerySystemProcessInformation();
+            PROCESS_BASIC_INFORMATION pbi = NtdllHelpers.NtQueryProcessBasicInformation(info.hProcess);
 
             // Track the process.
             // NOTE: Process handle will be closed automatically by DbgSs.
@@ -448,7 +447,7 @@ namespace Fuzzman.Core.Debugger.Simple
 
         private void OnLoadDllDebugEvent(uint pid, LOAD_DLL_DEBUG_INFO info)
         {
-            this.UpdateModuleList();
+            //this.UpdateModuleList();
 
             if (this.SharedLibraryLoadedEvent != null)
             {
@@ -471,7 +470,7 @@ namespace Fuzzman.Core.Debugger.Simple
                 this.SharedLibraryUnloadedEvent(this, e);
             }
 
-            this.moduleMap.Remove(info.lpBaseOfDll);
+            //this.moduleMap.Remove(info.lpBaseOfDll);
         }
 
         private void OnOutputDebugStringDebugEvent(uint pid, uint tid, OUTPUT_DEBUG_STRING_INFO info)

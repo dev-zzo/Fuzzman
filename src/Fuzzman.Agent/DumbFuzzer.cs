@@ -20,11 +20,12 @@ namespace Fuzzman.Agent
             using (MappedFileView view = mapped.CreateView(0, 0))
             {
                 int max;
-                max = (int)this.rng.GetNext(0, 20);
-                for (int i = 0; i < 10; i++)
+                max = (int)this.rng.GetNext(0, 51);
+                for (int i = 0; i < max; i++)
                     bitFlipper.Process(view);
-                max = (int)this.rng.GetNext(0, 3);
-                for (int i = 0; i < 2; i++)
+
+                max = (int)this.rng.GetNext(0, 6);
+                for (int i = 0; i < max; i++)
                     valueSetter.Process(view);
             }
         }

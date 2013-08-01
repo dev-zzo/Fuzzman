@@ -31,6 +31,7 @@ namespace Fuzzman.Core.Interop
     [Flags]
     public enum ProcessCreationFlags : uint
     {
+        NONE = 0,
         DEBUG_PROCESS = 0x00000001,
         DEBUG_ONLY_THIS_PROCESS = 0x00000002,
         CREATE_SUSPENDED = 0x00000004,

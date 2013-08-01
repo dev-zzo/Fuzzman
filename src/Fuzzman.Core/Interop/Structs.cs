@@ -31,8 +31,8 @@ namespace Fuzzman.Core.Interop
     {
         public IntPtr hProcess;
         public IntPtr hThread;
-        public int dwProcessId;
-        public int dwThreadId;
+        public uint dwProcessId;
+        public uint dwThreadId;
     }
 
     [StructLayout(LayoutKind.Sequential)]
