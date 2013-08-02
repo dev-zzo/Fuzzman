@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Fuzzman.Core.Debugger.DebugInfo;
@@ -21,8 +20,6 @@ namespace Fuzzman.Core.Debugger.Simple
 
 
         public IDictionary<uint, ThreadInfo> Threads { get { return this.threadMap; } }
-
-        public IDictionary<IntPtr, ModuleInfo> Modules { get { return this.moduleMap; } }
 
 
         public event ExceptionEventHandler ExceptionEvent;
@@ -58,37 +55,6 @@ namespace Fuzzman.Core.Debugger.Simple
             this.debuggerThread.Start(pid);
         }
 
-        public CONTEXT GetThreadContext(uint tid)
-        {
-            return GetThreadContext(this.threadMap[tid].Handle);
-        }
-
-        public CONTEXT GetThreadContext(IntPtr threadHandle)
-        {
-            CONTEXT context = new CONTEXT();
-            context.ContextFlags = CONTEXT_FLAGS.CONTEXT_ALL;
-            if (!Kernel32.GetThreadContext(threadHandle, ref context))
-            {
-                throw new Exception("Failed to retrieve the thread context.");
-            }
-            return context;
-        }
-
-        public LDT_ENTRY GetThreadLdtEntry(uint tid, uint selector)
-        {
-            return GetThreadLdtEntry(this.threadMap[tid].Handle, selector);
-        }
-
-        public LDT_ENTRY GetThreadLdtEntry(IntPtr threadHandle, uint selector)
-        {
-            LDT_ENTRY entry = new LDT_ENTRY();
-            if (!Kernel32.GetThreadSelectorEntry(threadHandle, selector, ref entry))
-            {
-                throw new Exception("Failed to retrieve the thread selector entry.");
-            }
-            return entry;
-        }
-
         public void TerminateTarget()
         {
             if (this.processInfo != null)
@@ -109,7 +75,6 @@ namespace Fuzzman.Core.Debugger.Simple
 
             // Clean up, just in case.
             this.threadMap.Clear();
-            this.moduleMap.Clear();
         }
 
         public void Dispose()
@@ -123,29 +88,18 @@ namespace Fuzzman.Core.Debugger.Simple
         private const uint DBG_CONTINUE = 0x00010002;
         private const uint DBG_EXCEPTION_NOT_HANDLED = 0x80010001;
 
-        private readonly ILogger logger = LogManager.GetLogger("SimpleDebugger");
-
         private ProcessInfo processInfo;
-
-        /// <summary>
-        /// Maps threadId -> ThreadInfo.
-        /// </summary>
         private readonly IDictionary<uint, ThreadInfo> threadMap = new Dictionary<uint, ThreadInfo>();
 
-        /// <summary>
-        /// Maps module base address -> ModuleInfo.
-        /// </summary>
-        private readonly IDictionary<IntPtr, ModuleInfo> moduleMap = new Dictionary<IntPtr, ModuleInfo>();
-
-        private Thread debuggerThread = null;
-        private Exception debuggerException = null;
-        private bool continueDebugging = true;
-        private int ignoreBreakpointCounter = 0;
+        private Thread debuggerThread;
+        private Exception debuggerException;
+        private bool continueDebugging;
+        private int ignoreBreakpointCounter;
 
         private void HandleDebuggerException(Exception ex)
         {
-            this.logger.Fatal(String.Format("Debugger thread crashed with exception:\r\n{0}", ex.ToString()));
             this.debuggerException = ex;
+            this.continueDebugging = false;
         }
 
         /// <summary>
@@ -175,8 +129,7 @@ namespace Fuzzman.Core.Debugger.Simple
                     );
                 if (!result)
                 {
-                    Win32Exception ex = new Win32Exception(Marshal.GetLastWin32Error());
-                    throw new Exception("Could not start process '" + commandLine + "'.", ex);
+                    throw new DebuggerException("Could not start process '" + commandLine + "'.", Marshal.GetLastWin32Error());
                 }
 
                 Kernel32.CloseHandle(procInfo.hThread);
@@ -190,10 +143,14 @@ namespace Fuzzman.Core.Debugger.Simple
             {
                 this.HandleDebuggerException(ex);
             }
+            finally
+            {
+                this.debuggerThread = null;
+            }
         }
 
         /// <summary>
-        /// Debugger thread entry point which attaches to an existing process.
+        /// Debugger thread entry point, which attaches to an existing process.
         /// </summary>
         private void DebuggerThreadAttach(object p)
         {
@@ -203,7 +160,7 @@ namespace Fuzzman.Core.Debugger.Simple
 
                 if (!Kernel32.DebugActiveProcess(pid))
                 {
-                    throw new Exception("Could not attach to process id " + pid + ".");
+                    throw new DebuggerException("Could not attach to process id " + pid + ".", Marshal.GetLastWin32Error());
                 }
 
                 Kernel32.DebugSetProcessKillOnExit(true);
@@ -215,112 +172,80 @@ namespace Fuzzman.Core.Debugger.Simple
             {
                 this.HandleDebuggerException(ex);
             }
+            finally
+            {
+                this.debuggerThread = null;
+            }
         }
 
+        /// <summary>
+        /// Main debugger loop. Waits for a debug event and dispatches it to corresponding handlers.
+        /// </summary>
         private void DebuggerThreadLoop()
         {
-            this.logger.Info("Debugger thread enters main loop.");
-
             this.ignoreBreakpointCounter = 0;
             this.continueDebugging = true;
 
-            int debugEventBufferLength = Marshal.SizeOf(typeof(DEBUG_EVENT)) + Marshal.SizeOf(typeof(EXCEPTION_DEBUG_INFO));
+            int debugEventBufferLength = Marshal.SizeOf(typeof(DEBUG_EVENT));
             IntPtr debugEventBuffer = Marshal.AllocHGlobal(debugEventBufferLength);
-            IntPtr debugEventUnion = debugEventBuffer + 12;
             try
             {
-                for (; ; )
+                while(this.continueDebugging)
                 {
-                    if (!this.continueDebugging)
-                        break;
-
                     Kernel32.ZeroMemory(debugEventBuffer, (IntPtr)debugEventBufferLength);
                     bool ret = Kernel32.WaitForDebugEvent(debugEventBuffer, 0xFFFFFFFF);
-                    if (ret)
-                    {
-                        DebugEventType debugEventCode = (DebugEventType)Marshal.ReadInt32(debugEventBuffer, 0);
-                        uint processId = (uint)Marshal.ReadInt32(debugEventBuffer, 4);
-                        uint threadId = (uint)Marshal.ReadInt32(debugEventBuffer, 8);
-                        uint continueStatus = DBG_CONTINUE;
-                        switch (debugEventCode)
-                        {
-                            case DebugEventType.EXCEPTION_DEBUG_EVENT:
-                                {
-                                    EXCEPTION_DEBUG_INFO info = (EXCEPTION_DEBUG_INFO)Marshal.PtrToStructure(debugEventUnion, typeof(EXCEPTION_DEBUG_INFO));
-                                    bool continueExec = this.OnExceptionDebugEvent(processId, threadId, info);
-                                    if (!continueExec)
-                                    {
-                                        continueStatus = DBG_EXCEPTION_NOT_HANDLED;
-                                    }
-                                    break;
-                                }
-                            case DebugEventType.CREATE_THREAD_DEBUG_EVENT:
-                                {
-                                    CREATE_THREAD_DEBUG_INFO info = (CREATE_THREAD_DEBUG_INFO)Marshal.PtrToStructure(debugEventUnion, typeof(CREATE_THREAD_DEBUG_INFO));
-                                    this.OnCreateThreadDebugEvent(processId, threadId, info);
-                                    break;
-                                }
-                            case DebugEventType.CREATE_PROCESS_DEBUG_EVENT:
-                                {
-                                    CREATE_PROCESS_DEBUG_INFO info = (CREATE_PROCESS_DEBUG_INFO)Marshal.PtrToStructure(debugEventUnion, typeof(CREATE_PROCESS_DEBUG_INFO));
-                                    this.OnCreateProcessDebugEvent(processId, threadId, info);
-                                    this.ignoreBreakpointCounter++;
-                                    break;
-                                }
-                            case DebugEventType.EXIT_THREAD_DEBUG_EVENT:
-                                {
-                                    EXIT_THREAD_DEBUG_INFO info = (EXIT_THREAD_DEBUG_INFO)Marshal.PtrToStructure(debugEventUnion, typeof(EXIT_THREAD_DEBUG_INFO));
-                                    this.OnExitThreadDebugEvent(processId, threadId, info);
-                                    break;
-                                }
-                            case DebugEventType.EXIT_PROCESS_DEBUG_EVENT:
-                                {
-                                    EXIT_PROCESS_DEBUG_INFO info = (EXIT_PROCESS_DEBUG_INFO)Marshal.PtrToStructure(debugEventUnion, typeof(EXIT_PROCESS_DEBUG_INFO));
-                                    this.OnExitProcessDebugEvent(processId, threadId, info);
-                                    break;
-                                }
-                            case DebugEventType.LOAD_DLL_DEBUG_EVENT:
-                                {
-                                    LOAD_DLL_DEBUG_INFO info = (LOAD_DLL_DEBUG_INFO)Marshal.PtrToStructure(debugEventUnion, typeof(LOAD_DLL_DEBUG_INFO));
-                                    this.OnLoadDllDebugEvent(processId, info);
-                                    break;
-                                }
-                            case DebugEventType.UNLOAD_DLL_DEBUG_EVENT:
-                                {
-                                    UNLOAD_DLL_DEBUG_INFO info = (UNLOAD_DLL_DEBUG_INFO)Marshal.PtrToStructure(debugEventUnion, typeof(UNLOAD_DLL_DEBUG_INFO));
-                                    this.OnUnloadDllDebugEvent(processId, info);
-                                    break;
-                                }
-                            case DebugEventType.OUTPUT_DEBUG_STRING_EVENT:
-                                {
-                                    OUTPUT_DEBUG_STRING_INFO info = (OUTPUT_DEBUG_STRING_INFO)Marshal.PtrToStructure(debugEventUnion, typeof(OUTPUT_DEBUG_STRING_INFO));
-                                    this.OnOutputDebugStringDebugEvent(processId, threadId, info);
-                                    break;
-                                }
-                            case DebugEventType.RIP_EVENT:
-                                {
-                                    RIP_INFO info = (RIP_INFO)Marshal.PtrToStructure(debugEventUnion, typeof(RIP_INFO));
-                                    this.OnRipDebugEvent(processId, threadId, info);
-                                    break;
-                                }
-                            default:
-                                throw new Exception("Unknown debugging event: 0x" + debugEventCode.ToString("X8"));
-                        }
+                    if (!ret)
+                        continue;
 
-                        ret = Kernel32.ContinueDebugEvent(processId, threadId, continueStatus);
-                        if (!ret)
-                        {
-                            Win32Exception ex = new Win32Exception(Marshal.GetLastWin32Error());
-                            throw new Exception("Could not continue debugging.", ex);
-                        }
+                    DEBUG_EVENT debugEvent = (DEBUG_EVENT)Marshal.PtrToStructure(debugEventBuffer, typeof(DEBUG_EVENT));
+                    uint continueStatus = DBG_CONTINUE;
+                    switch (debugEvent.dwDebugEventCode)
+                    {
+                        case DebugEventType.EXCEPTION_DEBUG_EVENT:
+                            if (!this.OnExceptionDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.ExceptionInfo))
+                            {
+                                continueStatus = DBG_EXCEPTION_NOT_HANDLED;
+                            }
+                            break;
+                        case DebugEventType.CREATE_THREAD_DEBUG_EVENT:
+                            this.OnCreateThreadDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.CreateThreadInfo);
+                            break;
+                        case DebugEventType.CREATE_PROCESS_DEBUG_EVENT:
+                            this.OnCreateProcessDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.CreateProcessInfo);
+                            break;
+                        case DebugEventType.EXIT_THREAD_DEBUG_EVENT:
+                            this.OnExitThreadDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.ExitThreadInfo);
+                            break;
+                        case DebugEventType.EXIT_PROCESS_DEBUG_EVENT:
+                            this.OnExitProcessDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.ExitProcessInfo);
+                            break;
+                        case DebugEventType.LOAD_DLL_DEBUG_EVENT:
+                            this.OnLoadDllDebugEvent(debugEvent.dwProcessId, debugEvent.LoadDllInfo);
+                            break;
+                        case DebugEventType.UNLOAD_DLL_DEBUG_EVENT:
+                            this.OnUnloadDllDebugEvent(debugEvent.dwProcessId, debugEvent.UnloadDllInfo);
+                            break;
+                        case DebugEventType.OUTPUT_DEBUG_STRING_EVENT:
+                            this.OnOutputDebugStringDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.OutputDebugStringInfo);
+                            break;
+                        case DebugEventType.RIP_EVENT:
+                            this.OnRipDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.RipInfo);
+                            break;
+                        default:
+                            throw new DebuggerException("Unknown debugging event: 0x" + debugEvent.dwDebugEventCode.ToString("X8"));
                     }
-                }
+
+                    ret = Kernel32.ContinueDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, continueStatus);
+                    if (!ret)
+                    {
+                        throw new DebuggerException("Could not continue debugging.", Marshal.GetLastWin32Error());
+                    }
+                } // while
             }
             finally
             {
                 Marshal.FreeHGlobal(debugEventBuffer);
             }
-            this.logger.Info("Debugger thread exited.");
         }
 
         #region Debug event handlers
@@ -358,7 +283,6 @@ namespace Fuzzman.Core.Debugger.Simple
 
         private void OnCreateThreadDebugEvent(uint pid, uint tid, CREATE_THREAD_DEBUG_INFO info)
         {
-            this.logger.Debug(String.Format("Thread {0} created.", tid));
             // Track the thread.
             // NOTE: Thread handle will be closed automatically by DbgSs.
             ThreadInfo threadInfo = new ThreadInfo();
@@ -377,8 +301,6 @@ namespace Fuzzman.Core.Debugger.Simple
 
         private void OnCreateProcessDebugEvent(uint pid, uint tid, CREATE_PROCESS_DEBUG_INFO info)
         {
-            this.logger.Debug(String.Format("Process {0} created.", pid));
-
             PROCESS_BASIC_INFORMATION pbi = NtdllHelpers.NtQueryProcessBasicInformation(info.hProcess);
 
             // Track the process.
@@ -403,6 +325,8 @@ namespace Fuzzman.Core.Debugger.Simple
 
             // Close the image handle.
             Kernel32.CloseHandle(info.hFile);
+
+            this.ignoreBreakpointCounter++;
         }
 
         private void OnExitThreadDebugEvent(uint pid, uint tid, EXIT_THREAD_DEBUG_INFO info)
@@ -439,16 +363,12 @@ namespace Fuzzman.Core.Debugger.Simple
             if (this.DebuggeePid == pid)
             {
                 this.continueDebugging = false;
-
                 this.threadMap.Clear();
-                this.moduleMap.Clear();
             }
         }
 
         private void OnLoadDllDebugEvent(uint pid, LOAD_DLL_DEBUG_INFO info)
         {
-            //this.UpdateModuleList();
-
             if (this.SharedLibraryLoadedEvent != null)
             {
                 SharedLibraryLoadedEventParams e = new SharedLibraryLoadedEventParams();
@@ -469,8 +389,6 @@ namespace Fuzzman.Core.Debugger.Simple
                 e.ImageBase = info.lpBaseOfDll;
                 this.SharedLibraryUnloadedEvent(this, e);
             }
-
-            //this.moduleMap.Remove(info.lpBaseOfDll);
         }
 
         private void OnOutputDebugStringDebugEvent(uint pid, uint tid, OUTPUT_DEBUG_STRING_INFO info)
@@ -485,50 +403,6 @@ namespace Fuzzman.Core.Debugger.Simple
 
         #endregion
 
-        private void UpdateModuleList()
-        {
-            PEB peb = (PEB)DebuggerHelper.ReadTargetMemory(
-                this.processInfo.Handle,
-                this.processInfo.PebLinearAddress,
-                typeof(PEB));
-            if (peb.LoaderData == IntPtr.Zero)
-            {
-                return;
-            }
-
-            PEB_LDR_DATA pebLoaderData = (PEB_LDR_DATA)DebuggerHelper.ReadTargetMemory(
-                this.processInfo.Handle,
-                peb.LoaderData,
-                typeof(PEB_LDR_DATA));
-            IntPtr headAnchorVA = peb.LoaderData + Marshal.OffsetOf(typeof(PEB_LDR_DATA), "InLoadOrderModuleList").ToInt32();
-            IntPtr currentAnchorVA = pebLoaderData.InLoadOrderModuleList.Flink;
-            while (currentAnchorVA != headAnchorVA)
-            {
-                LDR_MODULE module = (LDR_MODULE)DebuggerHelper.ReadTargetMemory(
-                    this.processInfo.Handle,
-                    currentAnchorVA - Marshal.OffsetOf(typeof(LDR_MODULE), "InLoadOrderModuleList").ToInt32(),
-                    typeof(LDR_MODULE));
-
-                if (!this.moduleMap.ContainsKey(module.BaseAddress))
-                {
-                    ModuleInfo info = new ModuleInfo();
-
-                    info.BaseAddress = module.BaseAddress;
-                    info.MappedSize = module.SizeOfImage;
-                    info.Name = DebuggerHelper.ReadUnicodeString(
-                        this.processInfo.Handle,
-                        module.BaseDllName);
-                    info.FullPath = DebuggerHelper.ReadUnicodeString(
-                        this.processInfo.Handle,
-                        module.FullDllName);
-
-                    this.moduleMap[info.BaseAddress] = info;
-                }
-
-                currentAnchorVA = module.InLoadOrderModuleList.Flink;
-            }
-        }
-
         #region Helpers
 
         private ExceptionDebugInfo ConvertDebugInfo(EXCEPTION_RECORD info)
@@ -539,8 +413,8 @@ namespace Fuzzman.Core.Debugger.Simple
                 case EXCEPTION_CODE.EXCEPTION_ACCESS_VIOLATION:
                     {
                         AccessViolationDebugInfo specific = new AccessViolationDebugInfo();
-                        specific.Type = (AccessViolationDebugInfo.AccessType)info.ExceptionInformation[0];
-                        specific.TargetVA = info.ExceptionInformation[1];
+                        specific.Type = (AccessViolationDebugInfo.AccessType)info.ExceptionInformation0;
+                        specific.TargetVA = info.ExceptionInformation1;
                         obj = specific;
                         break;
                     }
@@ -555,7 +429,6 @@ namespace Fuzzman.Core.Debugger.Simple
             if (info.ExceptionRecord != IntPtr.Zero)
             {
                 // TODO
-                this.logger.Warning("The exception has a nested one, but I can't yet handle that.");
             }
 
             return obj;

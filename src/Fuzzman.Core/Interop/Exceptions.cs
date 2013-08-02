@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Fuzzman.Core.Interop
 {
@@ -40,7 +39,20 @@ namespace Fuzzman.Core.Interop
         public IntPtr ExceptionRecord;
         public IntPtr ExceptionAddress;
         public uint NumberParameters;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 15)]
-        public IntPtr[] ExceptionInformation;
+        public IntPtr ExceptionInformation0; // Dirty hack, but the CLR cannot marshal union arrays...
+        public IntPtr ExceptionInformation1;
+        public IntPtr ExceptionInformation2;
+        public IntPtr ExceptionInformation3;
+        public IntPtr ExceptionInformation4;
+        public IntPtr ExceptionInformation5;
+        public IntPtr ExceptionInformation6;
+        public IntPtr ExceptionInformation7;
+        public IntPtr ExceptionInformation8;
+        public IntPtr ExceptionInformation9;
+        public IntPtr ExceptionInformationA;
+        public IntPtr ExceptionInformationB;
+        public IntPtr ExceptionInformationC;
+        public IntPtr ExceptionInformationD;
+        public IntPtr ExceptionInformationE;
     }
 }

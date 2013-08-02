@@ -34,11 +34,11 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Debugger\DebuggerException.cs" />
     <Compile Include="Debugger\DebugInfo\ExceptionDebugInfo.cs" />
     <Compile Include="Debugger\Events.cs" />
     <Compile Include="Debugger\ModuleInfo.cs" />
     <Compile Include="Debugger\ProcessInfo.cs" />
-    <Compile Include="Debugger\Simple\DebuggerHelper.cs" />
     <Compile Include="Debugger\Simple\SimpleDebugger.cs" />
     <Compile Include="Debugger\ThreadInfo.cs" />
     <Compile Include="IFuzzer.cs" />

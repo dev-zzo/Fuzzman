@@ -16,11 +16,44 @@ namespace Fuzzman.Core.Interop
         RIP_EVENT = 9,
     };
 
+    [StructLayout(LayoutKind.Explicit)]
     public struct DEBUG_EVENT
     {
+        [FieldOffset(0x00)]
         public DebugEventType dwDebugEventCode;
+
+        [FieldOffset(0x04)]
         public uint dwProcessId;
+
+        [FieldOffset(0x08)]
         public uint dwThreadId;
+
+        [FieldOffset(0x0C)]
+        public EXCEPTION_DEBUG_INFO ExceptionInfo;
+
+        [FieldOffset(0x0C)]
+        public CREATE_THREAD_DEBUG_INFO CreateThreadInfo;
+
+        [FieldOffset(0x0C)]
+        public CREATE_PROCESS_DEBUG_INFO CreateProcessInfo;
+
+        [FieldOffset(0x0C)]
+        public EXIT_THREAD_DEBUG_INFO ExitThreadInfo;
+
+        [FieldOffset(0x0C)]
+        public EXIT_PROCESS_DEBUG_INFO ExitProcessInfo;
+
+        [FieldOffset(0x0C)]
+        public LOAD_DLL_DEBUG_INFO LoadDllInfo;
+
+        [FieldOffset(0x0C)]
+        public UNLOAD_DLL_DEBUG_INFO UnloadDllInfo;
+
+        [FieldOffset(0x0C)]
+        public OUTPUT_DEBUG_STRING_INFO OutputDebugStringInfo;
+
+        [FieldOffset(0x0C)]
+        public RIP_INFO RipInfo;
     }
 
     [StructLayout(LayoutKind.Sequential)]

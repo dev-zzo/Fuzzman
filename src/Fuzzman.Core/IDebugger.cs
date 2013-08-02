@@ -14,8 +14,6 @@ namespace Fuzzman.Core
 
         IDictionary<uint, ThreadInfo> Threads { get; }
 
-        IDictionary<IntPtr, ModuleInfo> Modules { get; }
-
 
         event ExceptionEventHandler ExceptionEvent;
 
@@ -37,10 +35,6 @@ namespace Fuzzman.Core
         void AttachToTarget(uint pid);
 
         void TerminateTarget();
-
-        CONTEXT GetThreadContext(uint tid);
-
-        LDT_ENTRY GetThreadLdtEntry(uint tid, uint selector);
 
         void Stop();
     }

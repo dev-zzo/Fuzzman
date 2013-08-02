@@ -8,6 +8,7 @@ using Fuzzman.Core.Debugger;
 using Fuzzman.Core.Debugger.DebugInfo;
 using Fuzzman.Core.Debugger.Simple;
 using Fuzzman.Core.Monitor;
+using Fuzzman.Core.Interop;
 
 namespace Fuzzman.Agent
 {
@@ -235,7 +236,11 @@ namespace Fuzzman.Agent
 
             thisReport.ExceptionCode = info.Info.ExceptionCode;
             thisReport.OffendingVA = info.Info.OffendingVA;
-            thisReport.RegisterDump = debugger.GetThreadContext(info.ThreadId).ToString();
+
+            ThreadInfo threadInfo = debugger.Threads[info.ThreadId];
+            CONTEXT context = new CONTEXT();
+            Kernel32.GetThreadContext(threadInfo.Handle, ref context);
+            thisReport.RegisterDump = context.ToString();
 
             this.report = thisReport;
 
