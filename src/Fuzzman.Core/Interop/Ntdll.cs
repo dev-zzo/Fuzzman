@@ -122,8 +122,8 @@ namespace Fuzzman.Core.Interop
         public UInt64 KernelTime;
         public UNICODE_STRING ImageName;
         public int BasePriority;
-        public IntPtr ProcessId;
-        public IntPtr InheritedFromProcessId;
+        public uint ProcessId;
+        public uint InheritedFromProcessId;
         public uint HandleCount;
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public uint Reserved2a;
@@ -223,50 +223,6 @@ namespace Fuzzman.Core.Interop
             Marshal.FreeHGlobal(pbi);
 
             return result;
-        }
-
-        public static void NtQuerySystemProcessInformation()
-        {
-            IntPtr psi = IntPtr.Zero;
-            int psiLength = 0x1000;
-            NTSTATUS status;
-
-            for (; ; )
-            {
-                psi = Marshal.AllocHGlobal(psiLength);
-
-                IntPtr fakePsiLength = (IntPtr)psiLength;
-                IntPtr returnLength;
-                status = Ntdll.NtQuerySystemInformation(
-                    SystemInformationClass.SystemProcessInformation,
-                    psi,
-                    fakePsiLength,
-                    out returnLength);
-
-                if (status == NTSTATUS.STATUS_INFO_LENGTH_MISMATCH)
-                {
-                    Marshal.FreeHGlobal(psi);
-                    psiLength *= 2;
-                    continue;
-                }
-                if (status == NTSTATUS.STATUS_SUCCESS)
-                {
-                    break;
-                }
-
-                Marshal.FreeHGlobal(psi);
-                return;
-            }
-
-            IntPtr current = psi;
-            SYSTEM_PROCESS_INFORMATION processInfo;
-            do
-            {
-                processInfo = (SYSTEM_PROCESS_INFORMATION)Marshal.PtrToStructure(current, typeof(SYSTEM_PROCESS_INFORMATION));
-                current += (int)processInfo.NextEntryOffset;
-            } while (processInfo.NextEntryOffset != 0);
-
-            Marshal.FreeHGlobal(psi);
         }
     }
 }

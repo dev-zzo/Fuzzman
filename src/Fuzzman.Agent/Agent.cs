@@ -125,6 +125,7 @@ namespace Fuzzman.Agent
                         ProcessIdleMonitor mon = new ProcessIdleMonitor(this.debugger.DebuggeePid);
                         mon.IdleEvent += new ProcessIdleEventHandler(this.OnProcessIdle);
                         mon.MaxIdleCount = 25;
+                        mon.CheckContextSwitches = true;
                         mon.Start();
 
                         // Wait for the program to complete or die.
