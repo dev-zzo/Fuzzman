@@ -243,6 +243,7 @@ namespace Fuzzman.Core.Interop
             ref CLIENT_ID ClientId,
             NTSTATUS ContinueStatus);
 
+        [DllImport("ntdll.dll")]
         public static extern NTSTATUS NtWaitForDebugEvent(
             IntPtr DebugHandle,
             bool Alertable,
