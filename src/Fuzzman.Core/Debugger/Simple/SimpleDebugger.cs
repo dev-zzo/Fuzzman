@@ -85,9 +85,6 @@ namespace Fuzzman.Core.Debugger.Simple
 
         #region Implementation details
 
-        private const uint DBG_CONTINUE = 0x00010002;
-        private const uint DBG_EXCEPTION_NOT_HANDLED = 0x80010001;
-
         private ProcessInfo processInfo;
         private readonly IDictionary<uint, ThreadInfo> threadMap = new Dictionary<uint, ThreadInfo>();
 
@@ -198,13 +195,13 @@ namespace Fuzzman.Core.Debugger.Simple
                         continue;
 
                     DEBUG_EVENT debugEvent = (DEBUG_EVENT)Marshal.PtrToStructure(debugEventBuffer, typeof(DEBUG_EVENT));
-                    uint continueStatus = DBG_CONTINUE;
+                    uint continueStatus = (uint)NTSTATUS.DBG_CONTINUE;
                     switch (debugEvent.dwDebugEventCode)
                     {
                         case DebugEventType.EXCEPTION_DEBUG_EVENT:
                             if (!this.OnExceptionDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.ExceptionInfo))
                             {
-                                continueStatus = DBG_EXCEPTION_NOT_HANDLED;
+                                continueStatus = (uint)NTSTATUS.DBG_EXCEPTION_NOT_HANDLED;
                             }
                             break;
                         case DebugEventType.CREATE_THREAD_DEBUG_EVENT:

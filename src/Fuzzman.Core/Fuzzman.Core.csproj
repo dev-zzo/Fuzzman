@@ -38,10 +38,12 @@
     <Compile Include="Debugger\DebugInfo\ExceptionDebugInfo.cs" />
     <Compile Include="Debugger\Events.cs" />
     <Compile Include="Debugger\ModuleInfo.cs" />
+    <Compile Include="Debugger\Native\NativeDebugger.cs" />
     <Compile Include="Debugger\ProcessInfo.cs" />
     <Compile Include="Debugger\Simple\SimpleDebugger.cs" />
     <Compile Include="Debugger\ThreadInfo.cs" />
     <Compile Include="IFuzzer.cs" />
+    <Compile Include="Interop\DbgKm.cs" />
     <Compile Include="Interop\Ntdll.cs" />
     <Compile Include="Monitor\ProcessIdleMonitor.cs" />
     <Compile Include="Mutator\BitFlipper.cs" />

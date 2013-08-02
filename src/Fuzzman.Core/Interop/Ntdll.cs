@@ -4,6 +4,22 @@ using System.Diagnostics;
 
 namespace Fuzzman.Core.Interop
 {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct OBJECT_ATTRIBUTES
+    {
+        public void Initialize()
+        {
+            this.Length = (uint)Marshal.SizeOf(this);
+        }
+
+        public uint Length;
+        public IntPtr RootDirectory;
+        public IntPtr ObjectName;
+        public uint Attributes;
+        public IntPtr SecurityDescriptor;
+        public IntPtr SecurityQualityOfService;
+    }
+
     public enum KWAIT_REASON : uint
     {
         Executive = 0,
@@ -92,6 +108,7 @@ namespace Fuzzman.Core.Interop
         public uint PeakPagefileUsage;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public struct SYSTEM_THREAD
     {
         public UInt64 KernelTime;
@@ -107,6 +124,7 @@ namespace Fuzzman.Core.Interop
         public KWAIT_REASON WaitReason;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public struct SYSTEM_PROCESS_INFORMATION
     {
         public uint NextEntryOffset;
@@ -201,6 +219,35 @@ namespace Fuzzman.Core.Interop
             IntPtr SystemInformation,
             IntPtr SystemInformationLength,
             out IntPtr ReturnLength);
+
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS ZwCreateDebugObject(
+            ref IntPtr DebugHandle,
+            uint DesiredAccess,
+            ref OBJECT_ATTRIBUTES ObjectAttributes,
+            uint Flags);
+
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtDebugActiveProcess(
+            IntPtr ProcessHandle,
+            IntPtr DebugHandle);
+
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS NtRemoveProcessDebug(
+            IntPtr ProcessHandle,
+            IntPtr DebugHandle);
+
+        [DllImport("ntdll.dll")]
+        public static extern NTSTATUS ZwDebugContinue(
+            IntPtr DebugHandle,
+            ref CLIENT_ID ClientId,
+            NTSTATUS ContinueStatus);
+
+        public static extern NTSTATUS NtWaitForDebugEvent(
+            IntPtr DebugHandle,
+            bool Alertable,
+            ref UInt64 Timeout,
+            out DBGUI_WAIT_STATE_CHANGE StateChange);
     }
 
     public static class NtdllHelpers
