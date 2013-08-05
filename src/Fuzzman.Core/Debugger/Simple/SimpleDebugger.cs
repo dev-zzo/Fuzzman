@@ -39,18 +39,12 @@ namespace Fuzzman.Core.Debugger.Simple
 
         public void CreateTarget(string commandLine)
         {
-            if (this.debuggerThread != null)
-                return;
-
             this.debuggerThread = new Thread(this.DebuggerThreadCreateProcess);
             this.debuggerThread.Start(commandLine);
         }
 
         public void AttachToTarget(uint pid)
         {
-            if (this.debuggerThread != null)
-                return;
-
             this.debuggerThread = new Thread(this.DebuggerThreadAttach);
             this.debuggerThread.Start(pid);
         }
@@ -67,7 +61,7 @@ namespace Fuzzman.Core.Debugger.Simple
         {
             this.continueDebugging = false;
 
-            if (this.debuggerThread!= null && this.debuggerThread.IsAlive)
+            if (this.debuggerThread != null && this.debuggerThread.IsAlive)
             {
                 this.debuggerThread.Join();
             }
@@ -140,10 +134,6 @@ namespace Fuzzman.Core.Debugger.Simple
             {
                 this.HandleDebuggerException(ex);
             }
-            finally
-            {
-                this.debuggerThread = null;
-            }
         }
 
         /// <summary>
@@ -168,10 +158,6 @@ namespace Fuzzman.Core.Debugger.Simple
             catch (Exception ex)
             {
                 this.HandleDebuggerException(ex);
-            }
-            finally
-            {
-                this.debuggerThread = null;
             }
         }
 
@@ -361,6 +347,7 @@ namespace Fuzzman.Core.Debugger.Simple
             {
                 this.continueDebugging = false;
                 this.threadMap.Clear();
+                this.processInfo = null;
             }
         }
 
