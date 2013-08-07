@@ -45,6 +45,11 @@ namespace Fuzzman.Core
             this.Write("INFO", message);
         }
 
+        public void Info(string format, params object[] args)
+        {
+            this.Info(String.Format(format, args));
+        }
+
         public void Warning(string message)
         {
             this.Write("WARN", message);
@@ -58,6 +63,11 @@ namespace Fuzzman.Core
         public void Fatal(string message)
         {
             this.Write("FATAL", message);
+        }
+
+        public void Fatal(string format, params object[] args)
+        {
+            this.Fatal(String.Format(format, args));
         }
 
         private string path;

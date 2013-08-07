@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Threading;
 using Fuzzman.Core.Debugger.DebugInfo;
 using Fuzzman.Core.Interop;
 
@@ -14,10 +13,7 @@ namespace Fuzzman.Core.Debugger.Simple
 {
     public sealed class SimpleDebugger : IDebugger
     {
-        public uint DebuggeePid { get; private set; }
-
-        public bool IsRunning { get { return this.continueDebugging; } }
-
+        public ProcessInfo Process { get { return this.processInfo; } }
 
         public IDictionary<uint, ThreadInfo> Threads { get { return this.threadMap; } }
 
@@ -39,156 +35,63 @@ namespace Fuzzman.Core.Debugger.Simple
 
         public void CreateTarget(string commandLine)
         {
-            this.debuggerThread = new Thread(this.DebuggerThreadCreateProcess);
-            this.debuggerThread.Start(commandLine);
+            STARTUPINFO startupInfo = new STARTUPINFO();
+            startupInfo.cb = Marshal.SizeOf(startupInfo);
+            PROCESS_INFORMATION procInfo = new PROCESS_INFORMATION();
+
+            bool result = Kernel32.CreateProcess(
+                null, // lpApplicationName 
+                commandLine, // lpCommandLine 
+                IntPtr.Zero, // lpProcessAttributes 
+                IntPtr.Zero, // lpThreadAttributes 
+                false, // bInheritHandles 
+                ProcessCreationFlags.DEBUG_PROCESS, // dwCreationFlags
+                IntPtr.Zero, // lpEnvironment 
+                null, // lpCurrentDirectory 
+                ref startupInfo, // lpStartupInfo 
+                out procInfo // lpProcessInformation 
+                );
+            if (!result)
+            {
+                throw new DebuggerException("Could not start process '" + commandLine + "'.", Marshal.GetLastWin32Error());
+            }
+
+            Kernel32.CloseHandle(procInfo.hThread);
+            Kernel32.CloseHandle(procInfo.hProcess);
+            Kernel32.DebugSetProcessKillOnExit(true);
+
+            this.ignoreBreakpointCounter = 0;
         }
 
         public void AttachToTarget(uint pid)
         {
-            this.debuggerThread = new Thread(this.DebuggerThreadAttach);
-            this.debuggerThread.Start(pid);
-        }
-
-        public void TerminateTarget()
-        {
-            if (this.processInfo != null)
+            if (!Kernel32.DebugActiveProcess(pid))
             {
-                Kernel32.TerminateProcess(this.processInfo.Handle, 0xDEADDEAD);
+                throw new DebuggerException("Could not attach to process id " + pid + ".", Marshal.GetLastWin32Error());
             }
-        }
 
-        public void Stop()
-        {
-            this.continueDebugging = false;
+            Kernel32.DebugSetProcessKillOnExit(true);
 
-            if (this.debuggerThread != null && this.debuggerThread.IsAlive)
-            {
-                this.debuggerThread.Join();
-            }
-            this.debuggerThread = null;
-
-            // Clean up, just in case.
-            this.threadMap.Clear();
-        }
-
-        public void Dispose()
-        {
-            this.TerminateTarget();
-            this.Stop();
-        }
-
-        #region Implementation details
-
-        private ProcessInfo processInfo;
-        private readonly IDictionary<uint, ThreadInfo> threadMap = new Dictionary<uint, ThreadInfo>();
-
-        private Thread debuggerThread;
-        private Exception debuggerException;
-        private bool continueDebugging;
-        private int ignoreBreakpointCounter;
-
-        private void HandleDebuggerException(Exception ex)
-        {
-            this.debuggerException = ex;
-            this.continueDebugging = false;
-        }
-
-        /// <summary>
-        /// Debugger thread entry point, which creates the target process.
-        /// </summary>
-        private void DebuggerThreadCreateProcess(object p)
-        {
-            try
-            {
-                string commandLine = (string)p;
-
-                STARTUPINFO startupInfo = new STARTUPINFO();
-                startupInfo.cb = Marshal.SizeOf(startupInfo);
-                PROCESS_INFORMATION procInfo = new PROCESS_INFORMATION();
-
-                bool result = Kernel32.CreateProcess(
-                    null, // lpApplicationName 
-                    commandLine, // lpCommandLine 
-                    IntPtr.Zero, // lpProcessAttributes 
-                    IntPtr.Zero, // lpThreadAttributes 
-                    false, // bInheritHandles 
-                    ProcessCreationFlags.DEBUG_PROCESS, // dwCreationFlags
-                    IntPtr.Zero, // lpEnvironment 
-                    null, // lpCurrentDirectory 
-                    ref startupInfo, // lpStartupInfo 
-                    out procInfo // lpProcessInformation 
-                    );
-                if (!result)
-                {
-                    throw new DebuggerException("Could not start process '" + commandLine + "'.", Marshal.GetLastWin32Error());
-                }
-
-                Kernel32.CloseHandle(procInfo.hThread);
-                Kernel32.CloseHandle(procInfo.hProcess);
-                Kernel32.DebugSetProcessKillOnExit(true);
-
-                this.DebuggeePid = (uint)procInfo.dwProcessId;
-                this.DebuggerThreadLoop();
-            }
-            catch (Exception ex)
-            {
-                this.HandleDebuggerException(ex);
-            }
-        }
-
-        /// <summary>
-        /// Debugger thread entry point, which attaches to an existing process.
-        /// </summary>
-        private void DebuggerThreadAttach(object p)
-        {
-            try
-            {
-                uint pid = (uint)p;
-
-                if (!Kernel32.DebugActiveProcess(pid))
-                {
-                    throw new DebuggerException("Could not attach to process id " + pid + ".", Marshal.GetLastWin32Error());
-                }
-
-                Kernel32.DebugSetProcessKillOnExit(true);
-
-                this.DebuggeePid = pid;
-                this.DebuggerThreadLoop();
-            }
-            catch (Exception ex)
-            {
-                this.HandleDebuggerException(ex);
-            }
-        }
-
-        /// <summary>
-        /// Main debugger loop. Waits for a debug event and dispatches it to corresponding handlers.
-        /// </summary>
-        private void DebuggerThreadLoop()
-        {
             this.ignoreBreakpointCounter = 0;
-            this.continueDebugging = true;
+        }
 
+        public void WaitAndDispatchEvent()
+        {
             int debugEventBufferLength = Marshal.SizeOf(typeof(DEBUG_EVENT));
             IntPtr debugEventBuffer = Marshal.AllocHGlobal(debugEventBufferLength);
             try
             {
-                while(this.continueDebugging)
+                Kernel32.ZeroMemory(debugEventBuffer, (IntPtr)debugEventBufferLength);
+                bool ret = Kernel32.WaitForDebugEvent(debugEventBuffer, 1000); // 1s waiting
+                if (ret)
                 {
-                    Kernel32.ZeroMemory(debugEventBuffer, (IntPtr)debugEventBufferLength);
-                    bool ret = Kernel32.WaitForDebugEvent(debugEventBuffer, 0xFFFFFFFF);
-                    if (!ret)
-                        continue;
-
                     DEBUG_EVENT debugEvent = (DEBUG_EVENT)Marshal.PtrToStructure(debugEventBuffer, typeof(DEBUG_EVENT));
                     uint continueStatus = (uint)NTSTATUS.DBG_CONTINUE;
                     switch (debugEvent.dwDebugEventCode)
                     {
                         case DebugEventType.EXCEPTION_DEBUG_EVENT:
-                            if (!this.OnExceptionDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.ExceptionInfo))
-                            {
-                                continueStatus = (uint)NTSTATUS.DBG_EXCEPTION_NOT_HANDLED;
-                            }
+                            ret = this.OnExceptionDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.ExceptionInfo);
+                            continueStatus = ret ? (uint)NTSTATUS.DBG_EXCEPTION_HANDLED : (uint)NTSTATUS.DBG_EXCEPTION_NOT_HANDLED;
                             break;
                         case DebugEventType.CREATE_THREAD_DEBUG_EVENT:
                             this.OnCreateThreadDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.CreateThreadInfo);
@@ -223,13 +126,34 @@ namespace Fuzzman.Core.Debugger.Simple
                     {
                         throw new DebuggerException("Could not continue debugging.", Marshal.GetLastWin32Error());
                     }
-                } // while
+                }
             }
             finally
             {
                 Marshal.FreeHGlobal(debugEventBuffer);
             }
         }
+
+        public void TerminateTarget()
+        {
+            if (this.processInfo != null)
+            {
+                Kernel32.TerminateProcess(this.processInfo.Handle, 0xDEADDEAD);
+                Kernel32.DebugActiveProcessStop(this.processInfo.Pid);
+            }
+        }
+
+        public void Dispose()
+        {
+            this.TerminateTarget();
+        }
+
+        #region Implementation details
+
+        private ProcessInfo processInfo;
+        private readonly IDictionary<uint, ThreadInfo> threadMap = new Dictionary<uint, ThreadInfo>();
+
+        private int ignoreBreakpointCounter;
 
         #region Debug event handlers
 
@@ -289,6 +213,7 @@ namespace Fuzzman.Core.Debugger.Simple
             // Track the process.
             // NOTE: Process handle will be closed automatically by DbgSs.
             this.processInfo = new ProcessInfo();
+            this.processInfo.Pid = pid;
             this.processInfo.Handle = info.hProcess;
             this.processInfo.PebLinearAddress = pbi.PebBaseAddress;
 
@@ -333,7 +258,11 @@ namespace Fuzzman.Core.Debugger.Simple
             fakeInfo.dwExitCode = info.dwExitCode;
             this.OnExitThreadDebugEvent(pid, tid, fakeInfo);
 
-            this.processInfo = null;
+            if (this.Process.Pid == pid)
+            {
+                this.threadMap.Clear();
+                this.processInfo = null;
+            }
 
             if (this.ProcessExitedEvent != null)
             {
@@ -341,13 +270,6 @@ namespace Fuzzman.Core.Debugger.Simple
                 e.ProcessId = pid;
                 e.ExitCode = info.dwExitCode;
                 this.ProcessExitedEvent(this, e);
-            }
-
-            if (this.DebuggeePid == pid)
-            {
-                this.continueDebugging = false;
-                this.threadMap.Clear();
-                this.processInfo = null;
             }
         }
 

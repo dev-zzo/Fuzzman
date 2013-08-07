@@ -12,5 +12,8 @@ namespace Fuzzman.Agent.Config
 
         [Option('r', "random-seed", DefaultValue = 0, HelpText = "A seed for the RNG.")]
         public int RandomSeed { get; set; }
+
+        [Option('p', "parallel", DefaultValue = 1, HelpText = "How many instances to run.")]
+        public int ParallelInstances { get; set; }
     }
 }

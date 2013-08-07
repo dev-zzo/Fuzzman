@@ -54,10 +54,9 @@ namespace Fuzzman.Agent
             fuzzer.Process(this.samplePath);
         }
 
-        public void Start(IDebugger debugger)
+        public string GetCommandLine()
         {
-            string cmdLine = this.MakeTestCommandLine();
-            debugger.CreateTarget(cmdLine);
+            return this.MakeTestCommandLine();
         }
 
         public void SaveResults()

@@ -5,6 +5,7 @@ using System.Text;
 
 namespace Fuzzman.Core.Debugger.Native
 {
+    /*
     public class NativeDebugger : IDebugger
     {
         public uint DebuggeePid
@@ -51,7 +52,7 @@ namespace Fuzzman.Core.Debugger.Native
             throw new NotImplementedException();
         }
 
-        public void Stop()
+        public void WaitAndDispatchEvent()
         {
             throw new NotImplementedException();
         }
@@ -61,4 +62,5 @@ namespace Fuzzman.Core.Debugger.Native
             throw new NotImplementedException();
         }
     }
+    */
 }

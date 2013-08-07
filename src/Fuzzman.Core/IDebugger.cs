@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using Fuzzman.Core.Debugger;
-using Fuzzman.Core.Interop;
 
 namespace Fuzzman.Core
 {
+    /// <summary>
+    /// Simple debugger interface.
+    /// NOTE: The debuggers usually do not have internal worker threads.
+    /// </summary>
     public interface IDebugger : IDisposable
     {
-        uint DebuggeePid { get; }
-
-        bool IsRunning { get; }
-
+        ProcessInfo Process { get; }
 
         IDictionary<uint, ThreadInfo> Threads { get; }
 
@@ -36,6 +36,6 @@ namespace Fuzzman.Core
 
         void TerminateTarget();
 
-        void Stop();
+        void WaitAndDispatchEvent();
     }
 }
