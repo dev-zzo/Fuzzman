@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using Fuzzman.Agent.Config;
 using Fuzzman.Core;
 
@@ -24,8 +25,10 @@ namespace Fuzzman.Agent
             for (int i = 0; i < this.threads.Length; ++i)
             {
                 AgentThread agent = new AgentThread(i, this.config);
-                agent.Start();
                 this.threads[i] = agent;
+                agent.Start();
+                // Allow for some time difference not to kill the system on start.
+                Thread.Sleep(2000);
             }
         }
 
