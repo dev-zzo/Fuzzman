@@ -22,6 +22,7 @@ namespace Fuzzman.Agent
         public void Start()
         {
             this.thread = new Thread(this.ThreadProc);
+            this.thread.Priority = ThreadPriority.Highest;
             this.thread.Start();
         }
 
@@ -39,11 +40,21 @@ namespace Fuzzman.Agent
         private readonly ILogger logger = LogManager.GetLogger("AgentThread");
         private readonly int id;
         private readonly AgentConfiguration config;
+        private static int testCaseId = 0;
+        private static object testCaseIdLock = new object();
         private Thread thread;
         private bool isStopping = false;
         private FaultReport report = null;
         private bool processStarted = false;
         private bool doneWithProcess = false;
+
+        private int GetNextTestCaseNumber()
+        {
+            lock (testCaseIdLock)
+            {
+                return testCaseId++;
+            }
+        }
 
         private void ThreadProc()
         {
@@ -54,7 +65,7 @@ namespace Fuzzman.Agent
 
             try
             {
-                int testCaseNumber = 1;
+                int testCaseNumber = GetNextTestCaseNumber();
                 int rerunCount = 0;
                 TestCase currentTest = null;
 
@@ -154,7 +165,7 @@ namespace Fuzzman.Agent
                         currentTest.Cleanup();
 
                         // Next test case
-                        testCaseNumber++;
+                        testCaseNumber = GetNextTestCaseNumber();
                     }
                 }
             }
