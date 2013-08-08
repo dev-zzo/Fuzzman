@@ -40,6 +40,11 @@ namespace Fuzzman.Core
             this.Write("DEBUG", message);
         }
 
+        public void Debug(string format, params object[] args)
+        {
+            this.Debug(String.Format(format, args));
+        }
+
         public void Info(string message)
         {
             this.Write("INFO", message);
@@ -55,9 +60,19 @@ namespace Fuzzman.Core
             this.Write("WARN", message);
         }
 
+        public void Warning(string format, params object[] args)
+        {
+            this.Warning(String.Format(format, args));
+        }
+
         public void Error(string message)
         {
             this.Write("ERROR", message);
+        }
+
+        public void Error(string format, params object[] args)
+        {
+            this.Error(String.Format(format, args));
         }
 
         public void Fatal(string message)

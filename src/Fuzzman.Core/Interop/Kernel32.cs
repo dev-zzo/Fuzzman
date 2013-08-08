@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Fuzzman.Core.Interop
 {
@@ -239,5 +240,38 @@ namespace Fuzzman.Core.Interop
         public static extern void ZeroMemory(
             IntPtr dest,
             IntPtr size);
+
+        [DllImport("kernel32.dll")]
+        public static extern int FormatMessage(
+            int dwFlags,
+            IntPtr lpSource,
+            int dwMessageId,
+            int dwLanguageId,
+            StringBuilder lpBuffer,
+            int nSize,
+            IntPtr Arguments);
+    }
+
+    public static class Kernel32Helpers
+    {
+        public static string GetSystemMessage(int errorCode)
+        {
+            int capacity = 512;
+            int FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000;
+            StringBuilder sb = new StringBuilder(capacity);
+            Kernel32.FormatMessage(
+                FORMAT_MESSAGE_FROM_SYSTEM,
+                IntPtr.Zero,
+                errorCode,
+                0,
+                sb,
+                sb.Capacity,
+                IntPtr.Zero);
+            int i = sb.Length;
+            while (i > 0 && (sb[i - 1] == '\r' || sb[i - 1] == '\n'))
+                i--;
+            sb.Length = i;
+            return sb.ToString();
+        }
     }
 }

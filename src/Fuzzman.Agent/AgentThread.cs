@@ -63,13 +63,12 @@ namespace Fuzzman.Agent
             IFuzzer fuzzer = new DumbFuzzer(rng);
             //this.logger.Info("Using RNG seed {0}.", seed);
 
-            try
+            int testCaseNumber = GetNextTestCaseNumber();
+            int rerunCount = 0;
+            TestCase currentTest = null;
+            while (!this.isStopping)
             {
-                int testCaseNumber = GetNextTestCaseNumber();
-                int rerunCount = 0;
-                TestCase currentTest = null;
-
-                while (!this.isStopping)
+                try
                 {
                     if (rerunCount <= 0)
                     {
@@ -92,43 +91,44 @@ namespace Fuzzman.Agent
                         this.logger.Info("[{0}] *** Test case {1} running again.", this.id, testCaseNumber);
                     }
 
-                    IDebugger debugger = new SimpleDebugger();
-                    debugger.ProcessCreatedEvent += this.OnProcessCreated;
-                    debugger.ProcessExitedEvent += this.OnProcessExited;
-                    debugger.ExceptionEvent += this.OnException;
-
-                    // Start the target
-                    this.processStarted = false;
-                    this.doneWithProcess = false;
-                    debugger.CreateTarget(currentTest.GetCommandLine());
-
-                    // Sync to process creation.
-                    while (!this.processStarted)
+                    using (IDebugger debugger = new SimpleDebugger())
                     {
-                        debugger.WaitAndDispatchEvent();
-                    }
+                        debugger.ProcessCreatedEvent += this.OnProcessCreated;
+                        debugger.ProcessExitedEvent += this.OnProcessExited;
+                        debugger.ExceptionEvent += this.OnException;
 
-                    ProcessIdleMonitor mon = new ProcessIdleMonitor(debugger.Process.Pid);
-                    mon.IdleEvent += new ProcessIdleEventHandler(this.OnProcessIdle);
-                    mon.MaxIdleCount = 25;
-                    mon.CheckContextSwitches = true;
-                    mon.Start();
+                        // Start the target
+                        this.processStarted = false;
+                        this.doneWithProcess = false;
+                        debugger.CreateTarget(currentTest.GetCommandLine());
 
-                    // Wait for the program to complete or die.
-                    this.logger.Info("[{0}] Waiting for the target to die.", this.id);
-                    DateTime startTime = DateTime.Now;
-                    TimeSpan timeoutSpan = TimeSpan.FromSeconds(this.config.Timeout);
-                    while (!this.doneWithProcess)
-                    {
-                        debugger.WaitAndDispatchEvent();
-                        if (DateTime.Now - startTime > timeoutSpan)
+                        // Sync to process creation.
+                        while (!this.processStarted)
                         {
-                            break;
+                            debugger.WaitAndDispatchEvent();
                         }
+
+                        ProcessIdleMonitor mon = new ProcessIdleMonitor(debugger.Process.Pid);
+                        mon.IdleEvent += new ProcessIdleEventHandler(this.OnProcessIdle);
+                        mon.MaxIdleCount = 25;
+                        mon.CheckContextSwitches = true;
+                        mon.Start();
+
+                        // Wait for the program to complete or die.
+                        this.logger.Info("[{0}] Waiting for the target exit/kill.", this.id);
+                        DateTime startTime = DateTime.Now;
+                        TimeSpan timeoutSpan = TimeSpan.FromSeconds(this.config.Timeout);
+                        while (!this.doneWithProcess)
+                        {
+                            debugger.WaitAndDispatchEvent();
+                            if (DateTime.Now - startTime > timeoutSpan)
+                            {
+                                break;
+                            }
+                        }
+                        mon.Stop();
+                        debugger.TerminateTarget();
                     }
-                    mon.Stop();
-                    debugger.TerminateTarget();
-                    debugger.Dispose();
 
                     if (this.report != null)
                     {
@@ -152,11 +152,12 @@ namespace Fuzzman.Agent
                     else
                     {
                         this.logger.Info("[{0}] Nothing interesting happened.", this.id);
-                        if (rerunCount > 0)
-                        {
-                            this.logger.Info("[{0}] Discarding the test case -- failed to reproduce on rerun {1}.", this.id, rerunCount);
-                        }
-                        rerunCount = 0;
+                        // Better keep the test case, even if it is not that stable.
+                        //if (rerunCount > 0)
+                        //{
+                        //    this.logger.Info("[{0}] Discarding the test case -- failed to reproduce on rerun {1}.", this.id, rerunCount);
+                        //}
+                        //rerunCount = 0;
                     }
 
                     if (rerunCount <= 0)
@@ -168,11 +169,11 @@ namespace Fuzzman.Agent
                         testCaseNumber = GetNextTestCaseNumber();
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                // Something went wrong... shut down gracefully.
-                this.logger.Fatal("[{0}] The agent thread has crashed with exception:\r\n{1}", this.id, ex.ToString());
+                catch (Exception ex)
+                {
+                    // Something went wrong... log the exception and continue running.
+                    this.logger.Error("[{0}] The agent thread has thrown an exception:\r\n{1}", this.id, ex.ToString());
+                }
             }
         }
 

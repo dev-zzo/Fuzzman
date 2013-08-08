@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.Serialization;
+using Fuzzman.Core.Interop;
 
 namespace Fuzzman.Core.Debugger
 {
@@ -16,7 +17,7 @@ namespace Fuzzman.Core.Debugger
         }
 
         public DebuggerException(string message, int errorCode)
-            : base(message)
+            : base(String.Format("{0}\r\nWin32 error code: {1} ({2:X8})", message, Kernel32Helpers.GetSystemMessage(errorCode), errorCode))
         {
         }
 
