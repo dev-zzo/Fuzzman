@@ -14,7 +14,7 @@ namespace Fuzzman.Agent.Config
             this.TestCasesPath = "";
             this.TestCaseTemplate = "{DATETIME}-TC{TCN}";
             this.Timeout = 30;
-            this.RerunCount = 10;
+            this.RerunCount = 9;
         }
 
         /// <summary>
@@ -27,6 +27,9 @@ namespace Fuzzman.Agent.Config
         /// </summary>
         public int Timeout { get; set; }
 
+        /// <summary>
+        /// How many times to rerun the test case, if the first run raised an exception.
+        /// </summary>
         public int RerunCount { get; set; }
 
         /// <summary>

@@ -61,7 +61,8 @@ namespace Fuzzman.Agent
 
         public void SaveResults()
         {
-            int counter = 1;
+            int counter = 0;
+
             foreach (FaultReport report in this.Reports)
             {
                 report.Generate(Path.Combine(this.WorkingDirectory, String.Format("fault-report-{0}.txt", counter)));

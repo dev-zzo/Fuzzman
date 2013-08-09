@@ -70,7 +70,7 @@ namespace Fuzzman.Agent
             {
                 try
                 {
-                    if (rerunCount <= 0)
+                    if (rerunCount == 0)
                     {
                         this.logger.Info("[{0}] *** Test case {1} starting.", this.id, testCaseNumber);
 
@@ -135,33 +135,32 @@ namespace Fuzzman.Agent
                         this.logger.Info("[{0}] Caught a fault.", this.id);
                         currentTest.Reports.Add(this.report);
                         this.report = null;
-                        if (rerunCount == 0)
-                        {
-                            rerunCount = this.config.RerunCount;
-                        }
-                        else
-                        {
-                            rerunCount--;
-                            if (rerunCount == 0)
-                            {
-                                this.logger.Info("[{0}] Reproducible test case, saving.", this.id);
-                                currentTest.SaveResults();
-                            }
-                        }
                     }
                     else
                     {
                         this.logger.Info("[{0}] Nothing interesting happened.", this.id);
-                        // Better keep the test case, even if it is not that stable.
-                        //if (rerunCount > 0)
-                        //{
-                        //    this.logger.Info("[{0}] Discarding the test case -- failed to reproduce on rerun {1}.", this.id, rerunCount);
-                        //}
-                        //rerunCount = 0;
                     }
 
-                    if (rerunCount <= 0)
+                    if (rerunCount == 0)
                     {
+                        if (currentTest.Reports.Count > 0)
+                        {
+                            rerunCount = this.config.RerunCount;
+                        }
+                    }
+                    else
+                    {
+                        rerunCount--;
+                    }
+
+                    if (rerunCount == 0)
+                    {
+                        if (currentTest.Reports.Count > 0)
+                        {
+                            this.logger.Info("[{0}] Something interesting, saving.", this.id);
+                            currentTest.SaveResults();
+                        }
+
                         this.logger.Info("[{0}] *** Test case ended.", this.id);
                         currentTest.Cleanup();
 
