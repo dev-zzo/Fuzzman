@@ -22,7 +22,7 @@ namespace Fuzzman.Agent
 
             this.logger.Info("Starting agent thread(s)...");
             this.threads = new AgentThread[this.options.ParallelInstances];
-            for (int i = 0; i < this.threads.Length; ++i)
+            for (int i = 0; !this.isStopping && i < this.threads.Length; ++i)
             {
                 AgentThread agent = new AgentThread(i, this.config);
                 this.threads[i] = agent;
@@ -34,6 +34,7 @@ namespace Fuzzman.Agent
 
         public void Stop()
         {
+            this.isStopping = true;
             this.logger.Info("Stopping agent thread(s)...");
             foreach (AgentThread agent in this.threads)
             {
@@ -45,6 +46,7 @@ namespace Fuzzman.Agent
         private readonly Options options = null;
         private readonly AgentConfiguration config = null;
         private AgentThread[] threads;
+        private bool isStopping = false;
 
         private void OnControlC(object sender, ConsoleCancelEventArgs args)
         {

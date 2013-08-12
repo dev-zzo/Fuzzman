@@ -41,10 +41,7 @@ namespace Fuzzman.Agent
 
         public void Setup(IFuzzer fuzzer)
         {
-            if (Directory.Exists(this.WorkingDirectory))
-            {
-                Directory.Delete(this.WorkingDirectory, true);
-            }
+            this.Cleanup();
             Directory.CreateDirectory(this.WorkingDirectory);
 
             string sampleFileName = Path.GetFileName(this.SourceFilePath);

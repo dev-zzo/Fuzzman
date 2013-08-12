@@ -110,7 +110,7 @@ namespace Fuzzman.Agent
 
                         ProcessIdleMonitor mon = new ProcessIdleMonitor(debugger.Process.Pid);
                         mon.IdleEvent += new ProcessIdleEventHandler(this.OnProcessIdle);
-                        mon.MaxIdleCount = 25;
+                        mon.MaxIdleCount = 10;
                         mon.CheckContextSwitches = true;
                         mon.Start();
 
@@ -163,6 +163,7 @@ namespace Fuzzman.Agent
 
                         this.logger.Info("[{0}] *** Test case ended.", this.id);
                         currentTest.Cleanup();
+                        currentTest = null;
 
                         // Next test case
                         testCaseNumber = GetNextTestCaseNumber();
@@ -172,6 +173,10 @@ namespace Fuzzman.Agent
                 {
                     // Something went wrong... log the exception and continue running.
                     this.logger.Error("[{0}] The agent thread has thrown an exception:\r\n{1}", this.id, ex.ToString());
+                    if (currentTest != null)
+                    {
+                        currentTest.Cleanup();
+                    }
                 }
             }
         }
