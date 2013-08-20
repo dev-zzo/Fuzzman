@@ -32,9 +32,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Debugger\DebuggerException.cs" />
+    <Compile Include="Debugger\DebuggerHelper.cs" />
     <Compile Include="Debugger\DebugInfo\ExceptionDebugInfo.cs" />
     <Compile Include="Debugger\Events.cs" />
     <Compile Include="Debugger\ModuleInfo.cs" />
@@ -45,7 +47,9 @@
     <Compile Include="IFuzzer.cs" />
     <Compile Include="Interop\DbgKm.cs" />
     <Compile Include="Interop\Ntdll.cs" />
+    <Compile Include="Interop\Rtl.cs" />
     <Compile Include="Monitor\ProcessIdleMonitor.cs" />
+    <Compile Include="Monitor\ProcessIdleMonitorConfig.cs" />
     <Compile Include="Mutator\BitFlipper.cs" />
     <Compile Include="Mutator\ValueSetter.cs" />
     <Compile Include="Mutator\ByteSlapper.cs" />

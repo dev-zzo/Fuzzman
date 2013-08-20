@@ -224,7 +224,7 @@ namespace Fuzzman.Core.Interop
         public static extern bool ContinueDebugEvent(
             uint dwProcessId,
             uint dwThreadId,
-            uint dwContinueStatus);
+            NTSTATUS dwContinueStatus);
 
         [DllImport("kernel32.dll")]
         public static extern bool DebugSetProcessKillOnExit(

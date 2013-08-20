@@ -9,14 +9,25 @@ namespace Fuzzman.Core.Monitor
 
     public class ProcessIdleMonitor
     {
-        public ProcessIdleMonitor(uint processId)
+        public ProcessIdleMonitor(uint processId = 0)
         {
-            this.processId = processId;
+            this.ProcessId = processId;
             this.PollInterval = 100;
             this.MaxIdleCount = 5;
             this.CheckTimes = false;
             this.CheckContextSwitches = false;
         }
+
+        public ProcessIdleMonitor(ProcessIdleMonitorConfig config)
+        {
+            this.ProcessId = 0;
+            this.PollInterval = config.PollInterval;
+            this.MaxIdleCount = config.MaxIdleCount;
+            this.CheckTimes = config.CheckTimes;
+            this.CheckContextSwitches = config.CheckContextSwitches;
+        }
+
+        public uint ProcessId { get; set; }
 
         public int PollInterval { get; set; }
 
@@ -45,7 +56,6 @@ namespace Fuzzman.Core.Monitor
             this.pollThread = null;
         }
 
-        private uint processId;
         private Thread pollThread;
         private bool isStopping = false;
 
@@ -62,6 +72,15 @@ namespace Fuzzman.Core.Monitor
             while (!this.isStopping)
             {
                 Thread.Sleep(this.PollInterval);
+
+                if (this.ProcessId == 0)
+                {
+                    kernelTime = 0;
+                    userTime = 0;
+                    contextSwitches = 0;
+                    inactivityCounter = 0;
+                    continue;
+                }
 
                 IntPtr psi = IntPtr.Zero;
                 int psiLength = 0x1000;
@@ -99,18 +118,18 @@ namespace Fuzzman.Core.Monitor
                 {
                     processInfo = (SYSTEM_PROCESS_INFORMATION)Marshal.PtrToStructure(current, typeof(SYSTEM_PROCESS_INFORMATION));
 
-                    if (processInfo.ProcessId == this.processId)
+                    if (processInfo.ProcessId == this.ProcessId)
                     {
                         UInt64 kernelTimeDelta = processInfo.KernelTime - kernelTime;
                         UInt64 userTimeDelta = processInfo.UserTime - userTime;
 
-                        bool inactive = true;
+                        bool inactive = false;
 
                         if (this.CheckTimes)
                         {
-                            if (kernelTimeDelta >= timeDeltaThreshold || userTimeDelta >= timeDeltaThreshold)
+                            if (kernelTimeDelta < timeDeltaThreshold && userTimeDelta < timeDeltaThreshold)
                             {
-                                inactive = false;
+                                inactive = true;
                             }
                         }
 
@@ -126,9 +145,9 @@ namespace Fuzzman.Core.Monitor
                             }
 
                             UInt64 contextSwitchesDelta = contextSwitchesUpdated - contextSwitches;
-                            if (contextSwitchesDelta >= contextSwitchesThreshold)
+                            if (contextSwitchesDelta < contextSwitchesThreshold)
                             {
-                                inactive = false;
+                                inactive = true;
                             }
 
                             contextSwitches = contextSwitchesUpdated;

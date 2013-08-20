@@ -6,6 +6,8 @@ namespace Fuzzman.Core.Debugger
     {
         public uint Pid;
 
+        public string ImagePath;
+
         public IntPtr Handle;
 
         public IntPtr PebLinearAddress;

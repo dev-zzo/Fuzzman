@@ -10,7 +10,7 @@ namespace Fuzzman.Core
     /// </summary>
     public interface IDebugger : IDisposable
     {
-        ProcessInfo Process { get; }
+        IDictionary<uint, ProcessInfo> Processes { get; }
 
         IDictionary<uint, ThreadInfo> Threads { get; }
 

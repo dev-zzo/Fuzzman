@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Xml.Serialization;
+﻿using System.Xml.Serialization;
+using Fuzzman.Core.Monitor;
 
 namespace Fuzzman.Agent.Config
 {
@@ -21,6 +18,11 @@ namespace Fuzzman.Agent.Config
         /// What to execute as a test subject.
         /// </summary>
         public string CommandLine { get; set; }
+
+        /// <summary>
+        /// Which process to watch for (exe name with extension).
+        /// </summary>
+        public string ProcessName { get; set; }
 
         /// <summary>
         /// Target timeout, in seconds.
@@ -47,5 +49,7 @@ namespace Fuzzman.Agent.Config
         /// Template of a dir name in testcases dir.
         /// </summary>
         public string TestCaseTemplate { get; set; }
+
+        public ProcessIdleMonitorConfig ProcessIdleMonitor { get; set; }
     }
 }

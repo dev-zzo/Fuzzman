@@ -44,6 +44,8 @@ namespace Fuzzman.Agent
         private static object testCaseIdLock = new object();
         private Thread thread;
         private bool isStopping = false;
+        private IDebugger debugger;
+        private uint targetPid;
         private FaultReport report = null;
         private bool processStarted = false;
         private bool doneWithProcess = false;
@@ -91,44 +93,47 @@ namespace Fuzzman.Agent
                         this.logger.Info("[{0}] *** Test case {1} running again.", this.id, testCaseNumber);
                     }
 
-                    using (IDebugger debugger = new SimpleDebugger())
+                    using (this.debugger = new SimpleDebugger())
                     {
-                        debugger.ProcessCreatedEvent += this.OnProcessCreated;
-                        debugger.ProcessExitedEvent += this.OnProcessExited;
-                        debugger.ExceptionEvent += this.OnException;
+                        this.debugger.ProcessCreatedEvent += this.OnProcessCreated;
+                        this.debugger.ProcessExitedEvent += this.OnProcessExited;
+                        this.debugger.ExceptionEvent += this.OnException;
 
                         // Start the target
                         this.processStarted = false;
                         this.doneWithProcess = false;
-                        debugger.CreateTarget(currentTest.GetCommandLine());
+                        this.targetPid = 0;
+                        this.debugger.CreateTarget(currentTest.GetCommandLine());
+
+                        ProcessIdleMonitorConfig monConfig = this.config.ProcessIdleMonitor != null ? this.config.ProcessIdleMonitor : new ProcessIdleMonitorConfig();
+                        ProcessIdleMonitor mon = new ProcessIdleMonitor(monConfig);
+                        mon.IdleEvent += new ProcessIdleEventHandler(this.OnProcessIdle);
+                        mon.Start();
 
                         // Sync to process creation.
                         while (!this.processStarted)
                         {
-                            debugger.WaitAndDispatchEvent();
+                            this.debugger.WaitAndDispatchEvent();
                         }
-
-                        ProcessIdleMonitor mon = new ProcessIdleMonitor(debugger.Process.Pid);
-                        mon.IdleEvent += new ProcessIdleEventHandler(this.OnProcessIdle);
-                        mon.MaxIdleCount = 10;
-                        mon.CheckContextSwitches = true;
-                        mon.Start();
 
                         // Wait for the program to complete or die.
                         this.logger.Info("[{0}] Waiting for the target exit/kill.", this.id);
+                        mon.ProcessId = this.targetPid;
                         DateTime startTime = DateTime.Now;
                         TimeSpan timeoutSpan = TimeSpan.FromSeconds(this.config.Timeout);
+                        bool isTerminating = false;
                         while (!this.doneWithProcess)
                         {
-                            debugger.WaitAndDispatchEvent();
-                            if (DateTime.Now - startTime > timeoutSpan)
+                            this.debugger.WaitAndDispatchEvent();
+                            if (DateTime.Now - startTime > timeoutSpan && !isTerminating)
                             {
-                                break;
+                                isTerminating = true;
+                                this.debugger.TerminateTarget();
                             }
                         }
                         mon.Stop();
-                        debugger.TerminateTarget();
                     }
+                    this.debugger = null;
 
                     if (this.report != null)
                     {
@@ -173,6 +178,10 @@ namespace Fuzzman.Agent
                 {
                     // Something went wrong... log the exception and continue running.
                     this.logger.Error("[{0}] The agent thread has thrown an exception:\r\n{1}", this.id, ex.ToString());
+                    if (this.debugger != null)
+                    {
+                        this.debugger.TerminateTarget();
+                    }
                     if (currentTest != null)
                     {
                         currentTest.Cleanup();
@@ -183,19 +192,29 @@ namespace Fuzzman.Agent
 
         private void OnProcessCreated(IDebugger debugger, ProcessCreatedEventParams info)
         {
-            //this.logger.Info("Target process started, pid {0}.", info.ProcessId);
-            this.processStarted = true;
+            string processPath = debugger.Processes[info.ProcessId].ImagePath;
+            this.logger.Info("[{0}] Process started, pid {1} ({2}).", this.id, info.ProcessId, processPath);
+            if (String.IsNullOrEmpty(this.config.ProcessName) || Path.GetFileName(processPath).ToLower() == this.config.ProcessName.ToLower())
+            {
+                this.targetPid = info.ProcessId;
+                this.processStarted = true;
+            }
         }
 
         private void OnProcessExited(IDebugger debugger, ProcessExitedEventParams info)
         {
-            //this.logger.Info("Target process has exited.");
-            this.doneWithProcess = true;
+            this.logger.Info("[{0}] Process has terminated, pid {1}.", this.id, info.ProcessId);
+            if (info.ProcessId == this.targetPid)
+            {
+                this.debugger.TerminateTarget();
+            }
+            this.doneWithProcess = this.debugger.Processes.Count == 0;
         }
 
         private void OnException(IDebugger debugger, ExceptionEventParams info)
         {
-            this.logger.Info("Target has raised an exception {0:X8} at {1:X8} in thread {2}.",
+            this.logger.Info("[{0}] Caught an exception {1:X8} at {2:X8} in thread {3}.",
+                this.id,
                 (uint)info.Info.ExceptionCode,
                 (uint)info.Info.OffendingVA,
                 info.ThreadId);
@@ -220,13 +239,13 @@ namespace Fuzzman.Agent
             thisReport.RegisterDump = context.ToString();
 
             this.report = thisReport;
-            this.doneWithProcess = true;
+            debugger.TerminateTarget();
         }
 
         private void OnProcessIdle()
         {
             this.logger.Info("[{0}] Target process detected to be idle, killing.", this.id);
-            this.doneWithProcess = true;
+            this.debugger.TerminateTarget();
         }
     }
 }

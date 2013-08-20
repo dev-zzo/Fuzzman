@@ -13,7 +13,7 @@ namespace Fuzzman.Core.Debugger.Simple
 {
     public sealed class SimpleDebugger : IDebugger
     {
-        public ProcessInfo Process { get { return this.processInfo; } }
+        public IDictionary<uint, ProcessInfo> Processes { get { return this.processMap; } }
 
         public IDictionary<uint, ThreadInfo> Threads { get { return this.threadMap; } }
 
@@ -86,12 +86,11 @@ namespace Fuzzman.Core.Debugger.Simple
                 if (ret)
                 {
                     DEBUG_EVENT debugEvent = (DEBUG_EVENT)Marshal.PtrToStructure(debugEventBuffer, typeof(DEBUG_EVENT));
-                    uint continueStatus = (uint)NTSTATUS.DBG_CONTINUE;
+                    NTSTATUS continueStatus = NTSTATUS.DBG_CONTINUE;
                     switch (debugEvent.dwDebugEventCode)
                     {
                         case DebugEventType.EXCEPTION_DEBUG_EVENT:
-                            ret = this.OnExceptionDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.ExceptionInfo);
-                            continueStatus = ret ? (uint)NTSTATUS.DBG_EXCEPTION_HANDLED : (uint)NTSTATUS.DBG_EXCEPTION_NOT_HANDLED;
+                            continueStatus = this.OnExceptionDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.ExceptionInfo);
                             break;
                         case DebugEventType.CREATE_THREAD_DEBUG_EVENT:
                             this.OnCreateThreadDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, debugEvent.CreateThreadInfo);
@@ -136,10 +135,16 @@ namespace Fuzzman.Core.Debugger.Simple
 
         public void TerminateTarget()
         {
-            if (this.processInfo != null)
+            // Have to make a copy -- the map changes when processes terminate.
+            List<ProcessInfo> processes = new List<ProcessInfo>();
+            foreach (ProcessInfo pi in this.Processes.Values)
             {
-                Kernel32.TerminateProcess(this.processInfo.Handle, 0xDEADDEAD);
-                Kernel32.DebugActiveProcessStop(this.processInfo.Pid);
+                processes.Add(pi);
+            }
+            foreach (ProcessInfo pi in processes)
+            {
+                Kernel32.DebugActiveProcessStop(pi.Pid);
+                Kernel32.TerminateProcess(pi.Handle, 0xDEADDEAD);
             }
         }
 
@@ -150,7 +155,7 @@ namespace Fuzzman.Core.Debugger.Simple
 
         #region Implementation details
 
-        private ProcessInfo processInfo;
+        private readonly IDictionary<uint, ProcessInfo> processMap = new Dictionary<uint, ProcessInfo>();
         private readonly IDictionary<uint, ThreadInfo> threadMap = new Dictionary<uint, ThreadInfo>();
 
         private int ignoreBreakpointCounter;
@@ -164,15 +169,20 @@ namespace Fuzzman.Core.Debugger.Simple
         /// <param name="tid"></param>
         /// <param name="info"></param>
         /// <returns>True to ignore the exception, false to pass the exception to the application.</returns>
-        private bool OnExceptionDebugEvent(uint pid, uint tid, EXCEPTION_DEBUG_INFO info)
+        private NTSTATUS OnExceptionDebugEvent(uint pid, uint tid, EXCEPTION_DEBUG_INFO info)
         {
             ExceptionDebugInfo convertedInfo = this.ConvertDebugInfo(info.ExceptionRecord);
             bool isFirstChance = info.dwFirstChance != 0;
 
-            if (this.ignoreBreakpointCounter > 0 && convertedInfo.ExceptionCode == EXCEPTION_CODE.EXCEPTION_BREAKPOINT)
+            if (convertedInfo.ExceptionCode == EXCEPTION_CODE.EXCEPTION_BREAKPOINT && this.ignoreBreakpointCounter > 0)
             {
                 this.ignoreBreakpointCounter--;
-                return true;
+                return NTSTATUS.DBG_EXCEPTION_HANDLED;
+            }
+
+            if (convertedInfo.ExceptionCode == EXCEPTION_CODE.EXCEPTION_CPLUSPLUS && isFirstChance)
+            {
+                return NTSTATUS.DBG_EXCEPTION_NOT_HANDLED;
             }
 
             if (this.ExceptionEvent != null)
@@ -185,7 +195,7 @@ namespace Fuzzman.Core.Debugger.Simple
                 this.ExceptionEvent(this, e);
             }
 
-            return false;
+            return NTSTATUS.DBG_TERMINATE_PROCESS;
         }
 
         private void OnCreateThreadDebugEvent(uint pid, uint tid, CREATE_THREAD_DEBUG_INFO info)
@@ -212,10 +222,23 @@ namespace Fuzzman.Core.Debugger.Simple
 
             // Track the process.
             // NOTE: Process handle will be closed automatically by DbgSs.
-            this.processInfo = new ProcessInfo();
-            this.processInfo.Pid = pid;
-            this.processInfo.Handle = info.hProcess;
-            this.processInfo.PebLinearAddress = pbi.PebBaseAddress;
+            ProcessInfo processInfo = new ProcessInfo();
+            processInfo.Pid = pid;
+            processInfo.Handle = info.hProcess;
+            processInfo.PebLinearAddress = pbi.PebBaseAddress;
+
+            PEB peb = (PEB)DebuggerHelper.ReadTargetMemory(
+                processInfo.Handle,
+                processInfo.PebLinearAddress,
+                typeof(PEB));
+            RTL_USER_PROCESS_PARAMETERS rupp = (RTL_USER_PROCESS_PARAMETERS)DebuggerHelper.ReadTargetMemory(
+                processInfo.Handle,
+                peb.ProcessParameters,
+                typeof(RTL_USER_PROCESS_PARAMETERS));
+            IntPtr imagePathPtr = peb.ProcessParameters + (int)rupp.ImagePathName.Buffer;
+            processInfo.ImagePath = DebuggerHelper.ReadNullTerminatedStringUnicode(processInfo.Handle, imagePathPtr);
+
+            this.processMap[pid] = processInfo;
 
             if (this.ProcessCreatedEvent != null)
             {
@@ -258,11 +281,7 @@ namespace Fuzzman.Core.Debugger.Simple
             fakeInfo.dwExitCode = info.dwExitCode;
             this.OnExitThreadDebugEvent(pid, tid, fakeInfo);
 
-            if (this.Process.Pid == pid)
-            {
-                this.threadMap.Clear();
-                this.processInfo = null;
-            }
+            this.processMap.Remove(pid);
 
             if (this.ProcessExitedEvent != null)
             {
