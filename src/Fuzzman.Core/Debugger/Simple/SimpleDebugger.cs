@@ -143,8 +143,9 @@ namespace Fuzzman.Core.Debugger.Simple
             }
             foreach (ProcessInfo pi in processes)
             {
-                Kernel32.DebugActiveProcessStop(pi.Pid);
+                //Kernel32.DebugActiveProcessStop(pi.Pid);
                 Kernel32.TerminateProcess(pi.Handle, 0xDEADDEAD);
+                //Console.WriteLine("Killing pid {0}", pi.Pid);
             }
         }
 
@@ -195,7 +196,7 @@ namespace Fuzzman.Core.Debugger.Simple
                 this.ExceptionEvent(this, e);
             }
 
-            return NTSTATUS.DBG_TERMINATE_PROCESS;
+            return NTSTATUS.DBG_EXCEPTION_NOT_HANDLED;
         }
 
         private void OnCreateThreadDebugEvent(uint pid, uint tid, CREATE_THREAD_DEBUG_INFO info)
