@@ -1,4 +1,5 @@
 ﻿using System.Xml.Serialization;
+using Fuzzman.Agent.Actions;
 using Fuzzman.Core.Monitor;
 
 namespace Fuzzman.Agent.Config
@@ -51,5 +52,11 @@ namespace Fuzzman.Agent.Config
         public string TestCaseTemplate { get; set; }
 
         public ProcessIdleMonitorConfig ProcessIdleMonitor { get; set; }
+
+        [XmlArrayItem("DeleteRegistryKey", Type = typeof(DeleteRegistryKeyAction))]
+        [XmlArrayItem("DeleteRegistryValue", Type = typeof(DeleteRegistryValueAction))]
+        [XmlArrayItem("DeleteFile", Type = typeof(DeleteFileAction))]
+        [XmlArrayItem("DeleteFodler", Type = typeof(DeleteFolderAction))]
+        public ActionBase[] PostRunActions { get; set; }
     }
 }

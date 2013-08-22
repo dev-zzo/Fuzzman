@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
+using Fuzzman.Agent.Actions;
 using Fuzzman.Agent.Config;
 using Fuzzman.Core;
 using Fuzzman.Core.Debugger;
@@ -144,6 +145,12 @@ namespace Fuzzman.Agent
                     else
                     {
                         this.logger.Info("[{0}] Nothing interesting happened.", this.id);
+                    }
+
+                    if (this.config.PostRunActions != null)
+                    {
+                        this.logger.Info("[{0}] Running post-run actions...", this.id);
+                        ActionBase.Execute(this.config.PostRunActions);
                     }
 
                     if (rerunCount == 0)

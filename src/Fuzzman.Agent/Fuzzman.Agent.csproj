@@ -41,6 +41,12 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Actions\ActionBase.cs" />
+    <Compile Include="Actions\DeleteFileAction.cs" />
+    <Compile Include="Actions\DeleteFolderAction.cs" />
+    <Compile Include="Actions\RegistryActionBase.cs" />
+    <Compile Include="Actions\DeleteRegistryKeyAction.cs" />
+    <Compile Include="Actions\DeleteRegistryValueAction.cs" />
     <Compile Include="Agent.cs" />
     <Compile Include="AgentThread.cs" />
     <Compile Include="Config\AgentConfiguration.cs" />
@@ -62,6 +68,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>xcopy $(SolutionDir)..\lib\dbghelp.dll $(TargetDir) /y</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

@@ -144,8 +144,10 @@ namespace Fuzzman.Core.Debugger.Simple
             foreach (ProcessInfo pi in processes)
             {
                 //Kernel32.DebugActiveProcessStop(pi.Pid);
-                Kernel32.TerminateProcess(pi.Handle, 0xDEADDEAD);
-                //Console.WriteLine("Killing pid {0}", pi.Pid);
+                bool res = Kernel32.TerminateProcess(pi.Handle, 0xDEADDEAD);
+                if (!res)
+                {
+                }
             }
         }
 
