@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using Fuzzman.Core.Interop;
 
 namespace Fuzzman.Core.Debugger.Simple
 {
-    internal static class DebuggerHelper
+    public static class DebuggerHelper
     {
         public static string ReadNullTerminatedStringAscii(IntPtr processHandle, IntPtr addr)
         {
@@ -88,5 +89,52 @@ namespace Fuzzman.Core.Debugger.Simple
             return Encoding.Unicode.GetString(buffer);
         }
 
+        public static List<ModuleInfo> BuildModuleList(IntPtr processHandle, IntPtr processPebAddress)
+        {
+            List<ModuleInfo> modules = new List<ModuleInfo>();
+
+            PEB peb = (PEB)DebuggerHelper.ReadTargetMemory(
+                processHandle,
+                processPebAddress,
+                typeof(PEB));
+            PEB_LDR_DATA loaderData = (PEB_LDR_DATA)DebuggerHelper.ReadTargetMemory(
+                processHandle,
+                peb.LoaderData,
+                typeof(PEB_LDR_DATA));
+
+            IntPtr loaderDataAnchor = peb.LoaderData + (int)Marshal.OffsetOf(typeof(PEB_LDR_DATA), "InLoadOrderModuleList");
+            IntPtr currentModulePtr = loaderData.InLoadOrderModuleList.Flink;
+            while (currentModulePtr != loaderDataAnchor)
+            {
+                LDR_MODULE module = (LDR_MODULE)DebuggerHelper.ReadTargetMemory(
+                    processHandle,
+                    currentModulePtr,
+                    typeof(LDR_MODULE));
+
+                ModuleInfo moduleInfo = new ModuleInfo();
+                moduleInfo.Name = ReadUnicodeString(processHandle, module.BaseDllName);
+                moduleInfo.FullPath = ReadUnicodeString(processHandle, module.FullDllName);
+                moduleInfo.BaseAddress = module.BaseAddress;
+                moduleInfo.MappedSize = module.SizeOfImage;
+                modules.Add(moduleInfo);
+
+                currentModulePtr = module.InLoadOrderModuleList.Flink;
+            }
+
+            return modules;
+        }
+
+        public static string LocateModuleOffset(IntPtr processHandle, IntPtr processPebAddress, IntPtr targetAddress)
+        {
+            List<ModuleInfo> modules = BuildModuleList(processHandle, processPebAddress);
+            foreach (ModuleInfo module in modules)
+            {
+                if ((ulong)module.BaseAddress >= (ulong)targetAddress && (ulong)module.BaseAddress + module.MappedSize < (ulong)targetAddress)
+                {
+                    return String.Format("{0}+0x{1:8X}", module.Name, (ulong)targetAddress - (ulong)module.BaseAddress);
+                }
+            }
+            return "???";
+        }
     }
 }

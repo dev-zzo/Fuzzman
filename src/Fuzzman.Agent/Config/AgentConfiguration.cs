@@ -12,7 +12,8 @@ namespace Fuzzman.Agent.Config
             this.TestCasesPath = "";
             this.TestCaseTemplate = "{DATETIME}-TC{TCN}";
             this.Timeout = 30;
-            this.RerunCount = 9;
+            this.RunCount = 10;
+            this.DisableDebugHeap = true;
         }
 
         /// <summary>
@@ -31,9 +32,9 @@ namespace Fuzzman.Agent.Config
         public int Timeout { get; set; }
 
         /// <summary>
-        /// How many times to rerun the test case, if the first run raised an exception.
+        /// How many times to run the test case, if the first run raised an exception.
         /// </summary>
-        public int RerunCount { get; set; }
+        public int RunCount { get; set; }
 
         /// <summary>
         /// Where to get the source files to be fuzzed.
@@ -50,6 +51,12 @@ namespace Fuzzman.Agent.Config
         /// Template of a dir name in testcases dir.
         /// </summary>
         public string TestCaseTemplate { get; set; }
+
+        /// <summary>
+        /// Whether we should disable the debug heap.
+        /// Defaults to true -- gets much close to free runs.
+        /// </summary>
+        public bool DisableDebugHeap { get; set; }
 
         public ProcessIdleMonitorConfig ProcessIdleMonitor { get; set; }
 

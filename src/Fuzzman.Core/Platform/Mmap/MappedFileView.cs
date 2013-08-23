@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using Fuzzman.Core.Interop;
 
-namespace Fuzzman.Core.System.Mmap
+namespace Fuzzman.Core.Platform.Mmap
 {
     /// <summary>
     /// Implements a view of the memory-mapped file.

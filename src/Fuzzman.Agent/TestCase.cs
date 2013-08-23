@@ -2,18 +2,32 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using Fuzzman.Core;
 
 namespace Fuzzman.Agent
 {
     public class TestCase
     {
-        public TestCase(int testCaseNumber)
+        public TestCase()
         {
-            this.TestCaseNumber = testCaseNumber;
+            this.TestCaseNumber = Interlocked.Increment(ref nextTestCaseNumber);
         }
 
-        public int TestCaseNumber { get; set; }
+        /// <summary>
+        /// Unique test case ID in this test run.
+        /// </summary>
+        public int TestCaseNumber { get; private set; }
+
+        /// <summary>
+        /// How many times the test case has been run.
+        /// </summary>
+        public int RunCount { get; set; }
+
+        /// <summary>
+        /// Timestamp when the program-under-test has been started.
+        /// </summary>
+        public DateTime StartTime { get; set; }
 
         public string TestCaseTemplate { get; set; }
 
@@ -34,10 +48,19 @@ namespace Fuzzman.Agent
         /// </summary>
         public string CommandLineTemplate { get; set; }
 
+        public string CommandLine { get; private set; }
+
         /// <summary>
         /// Reports associated with this test case.
         /// </summary>
         public IList<FaultReport> Reports { get { return this.reports; } }
+
+        public string AnalysisSummary { get; set; }
+
+        /// <summary>
+        /// Analysis results of this test case.
+        /// </summary>
+        public string AnalysisDetails { get; set; }
 
         public void Setup(IFuzzer fuzzer)
         {
@@ -45,28 +68,30 @@ namespace Fuzzman.Agent
             Directory.CreateDirectory(this.WorkingDirectory);
 
             string sampleFileName = Path.GetFileName(this.SourceFilePath);
-            this.samplePath = Path.Combine(this.WorkingDirectory, sampleFileName);
-            File.Copy(this.SourceFilePath, this.samplePath);
+            string samplePath = Path.Combine(this.WorkingDirectory, sampleFileName);
+            File.Copy(this.SourceFilePath, samplePath);
 
-            fuzzer.Process(this.samplePath);
-        }
+            fuzzer.Process(samplePath);
 
-        public string GetCommandLine()
-        {
-            return this.MakeTestCommandLine();
+            StringBuilder builder = new StringBuilder(this.CommandLineTemplate, 256);
+            builder.Replace("{TARGET}", samplePath);
+            this.CommandLine = builder.ToString();
         }
 
         public void SaveResults()
         {
-            int counter = 0;
-
-            foreach (FaultReport report in this.Reports)
+            using (FileStream stream = new FileStream(Path.Combine(this.WorkingDirectory, "analysis.txt"), FileMode.CreateNew, FileAccess.Write))
+            using (StreamWriter writer = new StreamWriter(stream))
             {
-                report.Generate(Path.Combine(this.WorkingDirectory, String.Format("fault-report-{0}.txt", counter)));
-                counter++;
+                writer.WriteLine(this.AnalysisDetails);
             }
 
-            Directory.Move(this.WorkingDirectory, this.MakeTestCaseDir());
+            StringBuilder builder = new StringBuilder(this.TestCaseTemplate, 256);
+            builder.Replace("{TCN}", this.TestCaseNumber.ToString("D8"));
+            builder.Replace("{DATETIME}", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
+            builder.Replace("{SUMMARY}", this.AnalysisSummary);
+
+            Directory.Move(this.WorkingDirectory, Path.Combine(this.SaveDirectory, builder.ToString()));
         }
 
         public void Cleanup()
@@ -77,28 +102,7 @@ namespace Fuzzman.Agent
             }
         }
 
+        private static int nextTestCaseNumber = 0;
         private readonly IList<FaultReport> reports = new List<FaultReport>();
-        private string samplePath;
-
-        private string MakeTestCommandLine()
-        {
-            StringBuilder builder = new StringBuilder(this.CommandLineTemplate, 256);
-
-            builder.Replace("{TARGET}", this.samplePath);
-
-            return builder.ToString();
-        }
-
-        private string MakeTestCaseDir()
-        {
-            StringBuilder builder = new StringBuilder(this.TestCaseTemplate, 256);
-
-            builder.Replace("{TCN}", this.TestCaseNumber.ToString("D8"));
-            builder.Replace("{DATETIME}", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
-            builder.Replace("{SUMMARY}", this.Reports[0].GetSummary());
-
-            return Path.Combine(this.SaveDirectory, builder.ToString());
-        }
-
     }
 }

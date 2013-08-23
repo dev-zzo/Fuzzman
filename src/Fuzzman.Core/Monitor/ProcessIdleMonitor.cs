@@ -1,17 +1,15 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Fuzzman.Core.Interop;
-using System.Runtime.InteropServices;
 
 namespace Fuzzman.Core.Monitor
 {
-    public delegate void ProcessIdleEventHandler();
-
-    public class ProcessIdleMonitor
+    public class ProcessIdleMonitor : IMonitor
     {
-        public ProcessIdleMonitor(uint processId = 0)
+        public ProcessIdleMonitor()
         {
-            this.ProcessId = processId;
+            this.ProcessId = 0;
             this.PollInterval = 100;
             this.MaxIdleCount = 5;
             this.CheckTimes = false;
@@ -27,7 +25,7 @@ namespace Fuzzman.Core.Monitor
             this.CheckContextSwitches = config.CheckContextSwitches;
         }
 
-        public uint ProcessId { get; set; }
+        public uint ProcessId { get; private set; }
 
         public int PollInterval { get; set; }
 
@@ -37,13 +35,26 @@ namespace Fuzzman.Core.Monitor
 
         public bool CheckContextSwitches { get; set; }
 
-        public event ProcessIdleEventHandler IdleEvent;
+        public event KillTargetEventHandler KillTargetEvent;
 
         public void Start()
         {
+            this.isStopping = false;
             pollThread = new Thread(this.PollThread);
+            pollThread.Name = "ProcessIdleMonitor Polling Thread";
             pollThread.Priority = ThreadPriority.Highest;
             pollThread.Start();
+        }
+
+        public void Attach(uint pid)
+        {
+            this.ProcessId = pid;
+            this.killTargetFired = false;
+        }
+
+        public void Detach()
+        {
+            this.ProcessId = 0;
         }
 
         public void Stop()
@@ -57,7 +68,8 @@ namespace Fuzzman.Core.Monitor
         }
 
         private Thread pollThread;
-        private bool isStopping = false;
+        private bool isStopping;
+        private bool killTargetFired;
 
         private void PollThread()
         {
@@ -120,17 +132,18 @@ namespace Fuzzman.Core.Monitor
 
                     if (processInfo.ProcessId == this.ProcessId)
                     {
-                        UInt64 kernelTimeDelta = processInfo.KernelTime - kernelTime;
-                        UInt64 userTimeDelta = processInfo.UserTime - userTime;
-
                         bool inactive = false;
 
                         if (this.CheckTimes)
                         {
+                            UInt64 kernelTimeDelta = processInfo.KernelTime - kernelTime;
+                            UInt64 userTimeDelta = processInfo.UserTime - userTime;
                             if (kernelTimeDelta < timeDeltaThreshold && userTimeDelta < timeDeltaThreshold)
                             {
                                 inactive = true;
                             }
+                            kernelTime = processInfo.KernelTime;
+                            userTime = processInfo.UserTime;
                         }
 
                         if (this.CheckContextSwitches)
@@ -154,18 +167,14 @@ namespace Fuzzman.Core.Monitor
                         }
 
                         inactivityCounter = inactive ? inactivityCounter + 1 : 0;
-                        if (inactivityCounter >= this.MaxIdleCount)
+                        if (!this.killTargetFired && inactivityCounter >= this.MaxIdleCount)
                         {
-                            this.isStopping = true;
-                            if (this.IdleEvent != null)
+                            this.killTargetFired = true;
+                            if (this.KillTargetEvent != null)
                             {
-                                this.IdleEvent();
+                                this.KillTargetEvent();
                             }
                         }
-
-                        kernelTime = processInfo.KernelTime;
-                        userTime = processInfo.UserTime;
-
                         break;
                     }
 

@@ -1,4 +1,4 @@
-﻿using Fuzzman.Core.System.Mmap;
+﻿using Fuzzman.Core.Platform.Mmap;
 
 namespace Fuzzman.Core.Mutator
 {

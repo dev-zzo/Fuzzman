@@ -45,6 +45,7 @@
     <Compile Include="Debugger\Simple\SimpleDebugger.cs" />
     <Compile Include="Debugger\ThreadInfo.cs" />
     <Compile Include="IFuzzer.cs" />
+    <Compile Include="IMonitor.cs" />
     <Compile Include="Interop\DbgHelp\DbgHelp.cs" />
     <Compile Include="Interop\DbgKm.cs" />
     <Compile Include="Interop\Ntdll.cs" />
@@ -71,8 +72,8 @@
     <Compile Include="LogManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StdRandom.cs" />
-    <Compile Include="System\Mmap\MappedFile.cs" />
-    <Compile Include="System\Mmap\MappedFileView.cs" />
+    <Compile Include="Platform\Mmap\MappedFile.cs" />
+    <Compile Include="Platform\Mmap\MappedFileView.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

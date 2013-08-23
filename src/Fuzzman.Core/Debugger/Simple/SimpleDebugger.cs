@@ -123,6 +123,10 @@ namespace Fuzzman.Core.Debugger.Simple
                     ret = Kernel32.ContinueDebugEvent(debugEvent.dwProcessId, debugEvent.dwThreadId, continueStatus);
                     if (!ret)
                     {
+                        if (System.Diagnostics.Debugger.IsAttached)
+                        {
+                            System.Diagnostics.Debugger.Break();
+                        }
                         throw new DebuggerException("Could not continue debugging.", Marshal.GetLastWin32Error());
                     }
                 }

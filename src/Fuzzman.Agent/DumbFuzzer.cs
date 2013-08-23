@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using Fuzzman.Core;
 using Fuzzman.Core.Mutator;
-using Fuzzman.Core.System.Mmap;
+using Fuzzman.Core.Platform.Mmap;
 
 namespace Fuzzman.Agent
 {

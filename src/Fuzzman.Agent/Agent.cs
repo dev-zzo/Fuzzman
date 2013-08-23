@@ -17,8 +17,11 @@ namespace Fuzzman.Agent
         {
             Console.CancelKeyPress += this.OnControlC;
 
-            // http://msdn.microsoft.com/en-us/library/windows/hardware/ff545528%28v=vs.85%29.aspx
-            Environment.SetEnvironmentVariable("_NO_DEBUG_HEAP", "1");
+            if (this.config.DisableDebugHeap)
+            {
+                // http://msdn.microsoft.com/en-us/library/windows/hardware/ff545528%28v=vs.85%29.aspx
+                Environment.SetEnvironmentVariable("_NO_DEBUG_HEAP", "1");
+            }
 
             this.logger.Info("Starting agent thread(s)...");
             this.threads = new AgentThread[this.options.ParallelInstances];

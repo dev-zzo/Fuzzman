@@ -2,7 +2,7 @@
 using System.IO;
 using Fuzzman.Core.Interop;
 
-namespace Fuzzman.Core.System.Mmap
+namespace Fuzzman.Core.Platform.Mmap
 {
     public class MappedFile : IDisposable
     {
