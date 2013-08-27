@@ -29,8 +29,8 @@ namespace Fuzzman.Agent
             this.reportBuilder.AppendFormat("* * * FAULT ANALYSIS START * * *\r\n\r\n");
 
             this.SortFaultReports();
-            this.BuildSummary(mergedReports);
-            this.reportBuilder.AppendFormat("Detailed analysis of each fault follows.\r\n\r\n");
+            this.BuildSummary();
+            this.reportBuilder.AppendFormat("Detailed analysis of each fault follows.\r\n\r\n\r\n");
             int counter = 1;
             foreach (AccessViolationFaultReport avfr in this.accessViolations)
             {
@@ -43,7 +43,7 @@ namespace Fuzzman.Agent
                 this.AnalyseFaultReport(efr);
             }
 
-            this.reportBuilder.AppendFormat("\r\n* * * FAULT ANALYSIS END * * *\r\n");
+            this.reportBuilder.AppendFormat("* * * FAULT ANALYSIS END * * *\r\n");
         }
 
         private readonly TestCase testCase;
@@ -96,52 +96,62 @@ namespace Fuzzman.Agent
                 this.genericExceptions.Count);
         }
 
-        private void BuildSummary(List<FaultReport> mergedReports)
+        private void BuildSummary()
         {
-            if (mergedReports.Count == 1)
+            List<string> locations = new List<string>();
+
+            foreach (FaultReport report in this.mergedReports)
             {
-                FaultReport report = mergedReports[0];
-                AccessViolationFaultReport avfr = report as AccessViolationFaultReport;
-                if (avfr != null)
+                ExceptionFaultReport efr = report as ExceptionFaultReport;
+                string location = efr.Location != "???" ? efr.Location : efr.OffendingVA.ToString("X8");
+                if (!locations.Contains(location))
                 {
+                    locations.Add(location);
+                }
+            }
+
+            if (locations.Count == 1)
+            {
+                if (this.genericExceptions.Count == 0 && this.accessViolations.Count > 0)
+                {
+                    AccessViolationFaultReport avfr = this.accessViolations[0];
+                    List<uint> targets = new List<uint>();
+                    foreach (AccessViolationFaultReport report in this.accessViolations)
+                    {
+                        if (!targets.Contains((uint)report.TargetVA))
+                        {
+                            targets.Add((uint)report.TargetVA);
+                        }
+                    }
+                    string target = targets.Count == 1 ? targets[0].ToString("X8") : "UNSTABLE";
+
                     if ((uint)avfr.TargetVA == avfr.Context.Eip)
                     {
-                        this.ReportSummary = String.Format("AV_X_{0:X8}",
-                            (uint)avfr.TargetVA);
+                        this.ReportSummary = String.Format("AV_X_{0}", target);
                         return;
                     }
-
-                    string location = avfr.Location != "???" ? avfr.Location : avfr.OffendingVA.ToString("X8");
-                    this.ReportSummary = String.Format("AV_{0}_{1}_{2:X8}",
-                        avfr.AccessType[0],
-                        location,
-                        (uint)avfr.TargetVA);
+                    this.ReportSummary = String.Format("AV_{0}_{1}_{2}", avfr.AccessType[0], locations[0], target);
                     return;
                 }
 
-                ExceptionFaultReport efr = report as ExceptionFaultReport;
-                if (efr != null)
+                if (this.accessViolations.Count == 0 && this.genericExceptions.Count > 0)
                 {
-                    string location = avfr.Location != "???" ? avfr.Location : avfr.OffendingVA.ToString("X8");
-                    this.ReportSummary = String.Format("EX_{0:X8}_{1}",
-                        (uint)efr.ExceptionCode,
-                        location);
+                    ExceptionFaultReport efr = this.genericExceptions[0];
+                    this.ReportSummary = String.Format("EX_{0:X8}_{1}", (uint)efr.ExceptionCode, locations[0]);
                     return;
                 }
-
-                this.ReportSummary = "UNKNOWN";
             }
-            else
-            {
-                this.ReportSummary = "UNSTABLE";
-            }
+            this.ReportSummary = "UNSTABLE";
         }
 
         private void AnalyseFaultReport(AccessViolationFaultReport report)
         {
-            this.reportBuilder.AppendFormat("Access violation ({0}) at {1:X8} -> {2:X8}\r\n",
+            string location = report.Location != "???" 
+                ? String.Format("{0} ({1:X8})", report.Location, (uint)report.OffendingVA) 
+                : report.OffendingVA.ToString("X8");
+            this.reportBuilder.AppendFormat("Access violation ({0}) at {1} -> {2:X8}\r\n",
                 report.AccessType,
-                (uint)report.OffendingVA,
+                location,
                 (uint)report.TargetVA);
             this.reportBuilder.AppendLine("Register dump:");
             this.reportBuilder.AppendLine(report.Context.ToString());
@@ -151,10 +161,13 @@ namespace Fuzzman.Agent
 
         private void AnalyseFaultReport(ExceptionFaultReport report)
         {
-            this.reportBuilder.AppendFormat("Exception {0} ({1:X8}) at {2:X8}\r\n",
+            string location = report.Location != "???"
+                ? String.Format("{0} ({1:X8})", report.Location, (uint)report.OffendingVA)
+                : report.OffendingVA.ToString("X8");
+            this.reportBuilder.AppendFormat("Exception {0} ({1:X8}) at {2}\r\n",
                 report.ExceptionCode,
                 (uint)report.ExceptionCode,
-                (uint)report.OffendingVA);
+                location);
             this.reportBuilder.AppendLine("Register dump:");
             this.reportBuilder.AppendLine(report.Context.ToString());
             this.reportBuilder.AppendLine();
