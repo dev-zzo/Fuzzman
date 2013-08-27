@@ -129,10 +129,12 @@ namespace Fuzzman.Core.Debugger.Simple
             List<ModuleInfo> modules = BuildModuleList(processHandle, processPebAddress);
             foreach (ModuleInfo module in modules)
             {
-                if ((ulong)module.BaseAddress >= (ulong)targetAddress && (ulong)module.BaseAddress + module.MappedSize < (ulong)targetAddress)
-                {
-                    return String.Format("{0}+0x{1:8X}", module.Name, (ulong)targetAddress - (ulong)module.BaseAddress);
-                }
+                long diff = (long)targetAddress - (long)module.BaseAddress;
+                if (diff < 0)
+                    continue;
+                if (diff > module.MappedSize)
+                    continue;
+                return String.Format("{0}+0x{1:X8}", module.Name, (uint)diff);
             }
             return "???";
         }

@@ -3,7 +3,7 @@ using Fuzzman.Core;
 using Fuzzman.Core.Mutator;
 using Fuzzman.Core.Platform.Mmap;
 
-namespace Fuzzman.Agent
+namespace Fuzzman.Agent.Fuzzers
 {
     class DumbFuzzer : IFuzzer
     {

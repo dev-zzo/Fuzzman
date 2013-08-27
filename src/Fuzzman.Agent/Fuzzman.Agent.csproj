@@ -52,11 +52,12 @@
     <Compile Include="Config\AgentConfiguration.cs" />
     <Compile Include="Config\Configuration.cs" />
     <Compile Include="Config\Options.cs" />
-    <Compile Include="DumbFuzzer.cs" />
+    <Compile Include="Fuzzers\DumbFuzzer.cs" />
     <Compile Include="FaultReport.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestCase.cs" />
+    <Compile Include="TestCaseAnalyser.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Fuzzman.Core\Fuzzman.Core.csproj">

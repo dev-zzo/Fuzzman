@@ -14,5 +14,10 @@ namespace Fuzzman.Core.Debugger
         public uint MappedSize;
 
         public string FullPath;
+
+        public override string ToString()
+        {
+            return String.Format("{0:X8} {1:X8} {2}", (uint)this.BaseAddress, this.MappedSize, this.Name);
+        }
     }
 }

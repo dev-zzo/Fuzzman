@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using Fuzzman.Agent.Actions;
 using Fuzzman.Agent.Config;
+using Fuzzman.Agent.Fuzzers;
 using Fuzzman.Core;
 using Fuzzman.Core.Debugger;
 using Fuzzman.Core.Debugger.DebugInfo;
@@ -251,7 +252,13 @@ namespace Fuzzman.Agent
                 return State.StartTarget;
             }
 
-            this.AnalyseResults();
+            TestCaseAnalyser analyser = new TestCaseAnalyser(this.testCase);
+            analyser.Analyse();
+            if (analyser.IsInteresting)
+            {
+                this.testCase.SaveResults(analyser.ReportSummary, analyser.ReportText);
+            }
+
             return State.CleanupTestCase;
         }
 
@@ -381,7 +388,11 @@ namespace Fuzzman.Agent
 
             ThreadInfo threadInfo = debugger.Threads[info.ThreadId];
             thisReport.Context = new CONTEXT();
-            Kernel32.GetThreadContext(threadInfo.Handle, ref thisReport.Context);
+            thisReport.Context.ContextFlags = CONTEXT_FLAGS.CONTEXT_ALL;
+            if (!Kernel32.GetThreadContext(threadInfo.Handle, ref thisReport.Context))
+            {
+                this.logger.Error("[{0}] Failed to obtain the thread's context.", this.workerId);
+            }
 
             ProcessInfo pi = debugger.Processes[info.ProcessId];
             thisReport.Location = DebuggerHelper.LocateModuleOffset(pi.Handle, pi.PebLinearAddress, info.Info.OffendingVA);
@@ -397,9 +408,5 @@ namespace Fuzzman.Agent
         }
 
         #endregion
-
-        private void AnalyseResults()
-        {
-        }
     }
 }

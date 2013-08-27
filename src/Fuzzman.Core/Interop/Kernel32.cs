@@ -117,18 +117,18 @@ namespace Fuzzman.Core.Interop
         [DllImport("kernel32.dll")]
         public static extern uint GetCurrentThread();
 
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool GetThreadContext(
             IntPtr hThread,
             ref CONTEXT lpContext);
 
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool GetThreadSelectorEntry(
             IntPtr hThread,
             uint dwSelector,
             ref LDT_ENTRY lpSelectorEntry);
 
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool SetThreadContext(
             IntPtr hThread,
             [In] ref CONTEXT lpContext);

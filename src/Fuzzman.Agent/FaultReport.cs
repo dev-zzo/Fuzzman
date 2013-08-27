@@ -5,12 +5,12 @@ namespace Fuzzman.Agent
 {
     public class FaultReport
     {
-        public int TimesOccurred;
-
-        public override bool Equals(object obj)
+        public FaultReport()
         {
-            return this.GetHashCode() == obj.GetHashCode();
+            this.OccurrenceCount = 1;
         }
+
+        public int OccurrenceCount;
     }
 
     public class ExceptionFaultReport : FaultReport
@@ -23,11 +23,18 @@ namespace Fuzzman.Agent
 
         public CONTEXT Context;
 
-        public override int GetHashCode()
+        public override bool Equals(object obj)
         {
-            int hash = (int)this.ExceptionCode;
-            hash ^= this.Location != null ? this.Location.GetHashCode() : (int)this.OffendingVA;
-            return hash;
+            ExceptionFaultReport efr = obj as ExceptionFaultReport;
+            if (efr == null)
+                return false;
+            if (this.ExceptionCode != efr.ExceptionCode)
+                return false;
+            if (this.Location != "???" && this.Location != efr.Location)
+                return false;
+            if (this.Location == "???" && this.OffendingVA != efr.OffendingVA)
+                return false;
+            return true;
         }
     }
 
@@ -37,9 +44,16 @@ namespace Fuzzman.Agent
 
         public IntPtr TargetVA;
 
-        public override int GetHashCode()
+        public override bool Equals(object obj)
         {
-            return base.GetHashCode() ^ this.AccessType.GetHashCode();
+            AccessViolationFaultReport avfr = obj as AccessViolationFaultReport;
+            if (avfr == null)
+                return false;
+            if (this.AccessType != avfr.AccessType)
+                return false;
+            if (this.TargetVA != avfr.TargetVA)
+                return false;
+            return base.Equals(obj);
         }
     }
 }

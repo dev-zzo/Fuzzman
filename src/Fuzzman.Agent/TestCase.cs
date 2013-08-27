@@ -55,13 +55,6 @@ namespace Fuzzman.Agent
         /// </summary>
         public IList<FaultReport> Reports { get { return this.reports; } }
 
-        public string AnalysisSummary { get; set; }
-
-        /// <summary>
-        /// Analysis results of this test case.
-        /// </summary>
-        public string AnalysisDetails { get; set; }
-
         public void Setup(IFuzzer fuzzer)
         {
             this.Cleanup();
@@ -78,18 +71,18 @@ namespace Fuzzman.Agent
             this.CommandLine = builder.ToString();
         }
 
-        public void SaveResults()
+        public void SaveResults(string summary, string details)
         {
             using (FileStream stream = new FileStream(Path.Combine(this.WorkingDirectory, "analysis.txt"), FileMode.CreateNew, FileAccess.Write))
             using (StreamWriter writer = new StreamWriter(stream))
             {
-                writer.WriteLine(this.AnalysisDetails);
+                writer.WriteLine(details);
             }
 
             StringBuilder builder = new StringBuilder(this.TestCaseTemplate, 256);
             builder.Replace("{TCN}", this.TestCaseNumber.ToString("D8"));
             builder.Replace("{DATETIME}", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
-            builder.Replace("{SUMMARY}", this.AnalysisSummary);
+            builder.Replace("{SUMMARY}", summary);
 
             Directory.Move(this.WorkingDirectory, Path.Combine(this.SaveDirectory, builder.ToString()));
         }
