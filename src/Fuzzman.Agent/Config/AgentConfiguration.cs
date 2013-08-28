@@ -63,7 +63,7 @@ namespace Fuzzman.Agent.Config
         [XmlArrayItem("DeleteRegistryKey", Type = typeof(DeleteRegistryKeyAction))]
         [XmlArrayItem("DeleteRegistryValue", Type = typeof(DeleteRegistryValueAction))]
         [XmlArrayItem("DeleteFile", Type = typeof(DeleteFileAction))]
-        [XmlArrayItem("DeleteFodler", Type = typeof(DeleteFolderAction))]
+        [XmlArrayItem("DeleteFolder", Type = typeof(DeleteFolderAction))]
         public ActionBase[] PostRunActions { get; set; }
     }
 }
