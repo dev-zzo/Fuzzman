@@ -153,6 +153,8 @@ namespace Fuzzman.Agent
             this.debugger = new SimpleDebugger();
             this.debugger.ProcessCreatedEvent += this.OnProcessCreated;
             this.debugger.ProcessExitedEvent += this.OnProcessExited;
+            this.debugger.ThreadCreatedEvent += this.OnThreadCreated;
+            this.debugger.ThreadExitedEvent += this.OnThreadExited;
             this.debugger.ExceptionEvent += this.OnException;
 
             this.processStarted = false;
