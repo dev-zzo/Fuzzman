@@ -148,12 +148,15 @@ namespace Fuzzman.Agent
 
         private State StartTarget()
         {
+            this.logger.Info("[{0}] Starting the target.", this.workerId);
+
             this.debugger = new SimpleDebugger();
             this.debugger.ProcessCreatedEvent += this.OnProcessCreated;
             this.debugger.ProcessExitedEvent += this.OnProcessExited;
             this.debugger.ExceptionEvent += this.OnException;
 
             this.processStarted = false;
+            this.doneWithTarget = false;
             this.targetPid = 0;
 
             this.debugger.CreateTarget(testCase.CommandLine);
@@ -346,7 +349,7 @@ namespace Fuzzman.Agent
         private void OnProcessCreated(IDebugger debugger, ProcessCreatedEventParams info)
         {
             string processPath = debugger.Processes[info.ProcessId].ImagePath;
-            this.logger.Info("[{0}] Process started, pid {1} ({2}).", this.workerId, info.ProcessId, processPath);
+            this.logger.Info("[{0}] Process {1} created ({2}).", this.workerId, info.ProcessId, processPath);
             if (String.IsNullOrEmpty(this.config.ProcessName) || Path.GetFileName(processPath).ToLower() == this.config.ProcessName.ToLower())
             {
                 this.targetPid = info.ProcessId;
@@ -356,12 +359,26 @@ namespace Fuzzman.Agent
 
         private void OnProcessExited(IDebugger debugger, ProcessExitedEventParams info)
         {
-            this.logger.Info("[{0}] Process has terminated, pid {1}.", this.workerId, info.ProcessId);
+            this.logger.Info("[{0}] Process {1} terminated.", this.workerId, info.ProcessId);
             if (info.ProcessId == this.targetPid)
             {
                 this.state = State.TerminateTarget;
             }
-            this.doneWithTarget = this.debugger.Processes.Count == 0;
+            this.logger.Debug("[{0}] Active processes count: {1}.", this.workerId, this.debugger.Processes.Count);
+            if (!this.doneWithTarget)
+            {
+                this.doneWithTarget = this.debugger.Processes.Count == 0;
+            }
+        }
+
+        private void OnThreadCreated(IDebugger debugger, ThreadCreatedEventParams info)
+        {
+            this.logger.Info("[{0}] Thread {1}/{2} created.", this.workerId, info.ThreadId, info.ProcessId);
+        }
+
+        private void OnThreadExited(IDebugger debugger, ThreadExitedEventParams info)
+        {
+            this.logger.Info("[{0}] Thread {1}/{2} terminated.", this.workerId, info.ThreadId, info.ProcessId);
         }
 
         private void OnException(IDebugger debugger, ExceptionEventParams info)
@@ -371,6 +388,12 @@ namespace Fuzzman.Agent
                 (uint)info.Info.ExceptionCode,
                 (uint)info.Info.OffendingVA,
                 info.ThreadId);
+
+            if (this.state != State.MonitorTarget)
+            {
+                this.logger.Error("[{0}] Bogus exception -- the target is not being monitored.", this.workerId);
+                return;
+            }
 
             ExceptionFaultReport thisReport = new ExceptionFaultReport();
 
