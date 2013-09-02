@@ -30,6 +30,8 @@ namespace Fuzzman.Agent
 
             this.SortFaultReports();
             this.BuildSummary();
+            this.reportBuilder.AppendFormat("Test case ran: {0} time(s).\r\n", this.testCase.RunCount);
+            this.reportBuilder.AppendFormat("Test case faults (raw): {0} .\r\n", this.testCase.Reports.Count);
             this.reportBuilder.AppendFormat("Detailed analysis of each fault follows.\r\n\r\n\r\n");
             int counter = 1;
             foreach (AccessViolationFaultReport avfr in this.accessViolations)

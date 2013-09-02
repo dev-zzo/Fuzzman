@@ -15,13 +15,15 @@ namespace Fuzzman.Agent
 
     public class ExceptionFaultReport : FaultReport
     {
+        public CONTEXT Context;
+
+        public uint[] StackDump;
+
         public EXCEPTION_CODE ExceptionCode;
 
         public IntPtr OffendingVA;
 
         public string Location;
-
-        public CONTEXT Context;
 
         public override bool Equals(object obj)
         {
@@ -35,6 +37,11 @@ namespace Fuzzman.Agent
             if (this.Location == "???" && this.OffendingVA != efr.OffendingVA)
                 return false;
             return true;
+        }
+
+        public override int GetHashCode()
+        {
+            return (int)this.ExceptionCode ^ this.Location.GetHashCode();
         }
     }
 
@@ -54,6 +61,11 @@ namespace Fuzzman.Agent
             if (this.TargetVA != avfr.TargetVA)
                 return false;
             return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode() ^ this.AccessType.GetHashCode() ^ (int)this.TargetVA;
         }
     }
 }

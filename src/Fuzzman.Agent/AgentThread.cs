@@ -397,31 +397,7 @@ namespace Fuzzman.Agent
                 return;
             }
 
-            ExceptionFaultReport thisReport = new ExceptionFaultReport();
-
-            AccessViolationDebugInfo avDebugInfo = info.Info as AccessViolationDebugInfo;
-            if (avDebugInfo != null)
-            {
-                AccessViolationFaultReport report = new AccessViolationFaultReport();
-                report.AccessType = avDebugInfo.Type.ToString();
-                report.TargetVA = avDebugInfo.TargetVA;
-                thisReport = report;
-            }
-
-            thisReport.ExceptionCode = info.Info.ExceptionCode;
-            thisReport.OffendingVA = info.Info.OffendingVA;
-
-            ThreadInfo threadInfo = debugger.Threads[info.ThreadId];
-            thisReport.Context = new CONTEXT();
-            thisReport.Context.ContextFlags = CONTEXT_FLAGS.CONTEXT_ALL;
-            if (!Kernel32.GetThreadContext(threadInfo.Handle, ref thisReport.Context))
-            {
-                this.logger.Error("[{0}] Failed to obtain the thread's context.", this.workerId);
-            }
-
-            ProcessInfo pi = debugger.Processes[info.ProcessId];
-            thisReport.Location = DebuggerHelper.LocateModuleOffset(pi.Handle, pi.PebLinearAddress, info.Info.OffendingVA);
-
+            FaultReport thisReport = BuildFaultReport(debugger, info);
             this.testCase.Reports.Add(thisReport);
             this.state = State.TerminateTarget;
         }
@@ -433,5 +409,66 @@ namespace Fuzzman.Agent
         }
 
         #endregion
+
+        private FaultReport BuildFaultReport(IDebugger debugger, ExceptionEventParams info)
+        {
+            ThreadInfo threadInfo = debugger.Threads[info.ThreadId];
+            ProcessInfo processInfo = debugger.Processes[info.ProcessId];
+
+            AccessViolationDebugInfo avDebugInfo = info.Info as AccessViolationDebugInfo;
+            if (avDebugInfo != null)
+            {
+                AccessViolationFaultReport report = new AccessViolationFaultReport();
+                this.FillFaultReport(debugger, threadInfo, processInfo, avDebugInfo, report);
+                return report;
+            }
+
+            {
+                ExceptionFaultReport report = new ExceptionFaultReport();
+                this.FillFaultReport(debugger, threadInfo, processInfo, info.Info, report);
+                return report;
+            }
+        }
+
+        private void FillFaultReport(IDebugger debugger, ThreadInfo threadInfo, ProcessInfo processInfo, ExceptionDebugInfo debugInfo, ExceptionFaultReport report)
+        {
+            report.ExceptionCode = debugInfo.ExceptionCode;
+            report.OffendingVA = debugInfo.OffendingVA;
+
+            report.Location = DebuggerHelper.LocateModuleOffset(processInfo.Handle, processInfo.PebLinearAddress, debugInfo.OffendingVA);
+
+            report.Context = new CONTEXT();
+            report.Context.ContextFlags = CONTEXT_FLAGS.CONTEXT_ALL;
+            if (!Kernel32.GetThreadContext(threadInfo.Handle, ref report.Context))
+            {
+                this.logger.Error("[{0}] Failed to obtain the thread's context.", this.workerId);
+            }
+
+            // TODO: Bitness warning.
+            int stackTraceCount = 32;
+            int stackTraceSize = stackTraceCount * 4;
+            byte[] rawStack = new byte[stackTraceSize];
+            uint bytesRead;
+            if (Kernel32.ReadProcessMemory(processInfo.Handle, (IntPtr)report.Context.Esp, rawStack, (uint)stackTraceSize, out bytesRead))
+            {
+                // Make sure we process only as many bytes as were actually read.
+                stackTraceSize = (int)bytesRead;
+                stackTraceCount = stackTraceSize / 4;
+
+                report.StackDump = new uint[stackTraceCount];
+                for (int i = 0; i < stackTraceCount; ++i)
+                {
+                    report.StackDump[i] = BitConverter.ToUInt32(rawStack, i * 4);
+                }
+            }
+        }
+
+        private void FillFaultReport(IDebugger debugger, ThreadInfo threadInfo, ProcessInfo processInfo, AccessViolationDebugInfo debugInfo, AccessViolationFaultReport report)
+        {
+            this.FillFaultReport(debugger, threadInfo, processInfo, (ExceptionDebugInfo)debugInfo, (ExceptionFaultReport)report);
+            report.AccessType = debugInfo.Type.ToString();
+            report.TargetVA = debugInfo.TargetVA;
+        }
+
     }
 }
