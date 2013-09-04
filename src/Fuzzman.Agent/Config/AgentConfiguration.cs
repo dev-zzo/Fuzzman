@@ -43,6 +43,12 @@ namespace Fuzzman.Agent.Config
         public string[] Sources { get; set; }
 
         /// <summary>
+        /// Which exceptions are to be passed to the application on the first chance.
+        /// </summary>
+        [XmlArrayItem("Exception")]
+        public string[] PassExceptions { get; set; }
+
+        /// <summary>
         /// Where to keep the test cases.
         /// </summary>
         public string TestCasesPath { get; set; }

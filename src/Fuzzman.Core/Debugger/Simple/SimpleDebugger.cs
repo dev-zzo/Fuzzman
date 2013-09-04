@@ -169,13 +169,6 @@ namespace Fuzzman.Core.Debugger.Simple
 
         #region Debug event handlers
 
-        /// <summary>
-        /// Handler for an exception debugging event.
-        /// </summary>
-        /// <param name="pid"></param>
-        /// <param name="tid"></param>
-        /// <param name="info"></param>
-        /// <returns>True to ignore the exception, false to pass the exception to the application.</returns>
         private NTSTATUS OnExceptionDebugEvent(uint pid, uint tid, EXCEPTION_DEBUG_INFO info)
         {
             ExceptionDebugInfo convertedInfo = this.ConvertDebugInfo(info.ExceptionRecord);

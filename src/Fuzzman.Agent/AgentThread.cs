@@ -397,6 +397,26 @@ namespace Fuzzman.Agent
                 return;
             }
 
+            if (this.config.PassExceptions != null)
+            {
+                foreach (string passedExceptionName in this.config.PassExceptions)
+                {
+                    try
+                    {
+                        EXCEPTION_CODE passedException = (EXCEPTION_CODE)Enum.Parse(typeof(EXCEPTION_CODE), passedExceptionName);
+                        if (info.IsFirstChance && info.Info.ExceptionCode == passedException)
+                        {
+                            this.logger.Info("[{0}] Passing the exception to the application (first-chance).", this.workerId);
+                            return;
+                        }
+                    }
+                    catch (ArgumentException)
+                    {
+                        this.logger.Error("Unrecognized exception name: {0}", passedExceptionName);
+                    }
+                }
+            }
+
             FaultReport thisReport = BuildFaultReport(debugger, info);
             this.testCase.Reports.Add(thisReport);
             this.state = State.TerminateTarget;
