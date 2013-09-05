@@ -49,6 +49,12 @@ namespace Fuzzman.Agent.Config
         public string[] PassExceptions { get; set; }
 
         /// <summary>
+        /// Which exceptions are to be passed to the application.
+        /// </summary>
+        [XmlArrayItem("Exception")]
+        public string[] IgnoreExceptions { get; set; }
+
+        /// <summary>
         /// Where to keep the test cases.
         /// </summary>
         public string TestCasesPath { get; set; }

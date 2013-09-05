@@ -397,24 +397,16 @@ namespace Fuzzman.Agent
                 return;
             }
 
-            if (this.config.PassExceptions != null)
+            if (this.CheckExceptionName(info.Info.ExceptionCode, this.config.IgnoreExceptions))
             {
-                foreach (string passedExceptionName in this.config.PassExceptions)
-                {
-                    try
-                    {
-                        EXCEPTION_CODE passedException = (EXCEPTION_CODE)Enum.Parse(typeof(EXCEPTION_CODE), passedExceptionName);
-                        if (info.IsFirstChance && info.Info.ExceptionCode == passedException)
-                        {
-                            this.logger.Info("[{0}] Passing the exception to the application (first-chance).", this.workerId);
-                            return;
-                        }
-                    }
-                    catch (ArgumentException)
-                    {
-                        this.logger.Error("Unrecognized exception name: {0}", passedExceptionName);
-                    }
-                }
+                this.logger.Info("[{0}] Passing the exception to the application (always).", this.workerId);
+                return;
+            }
+
+            if (info.IsFirstChance && this.CheckExceptionName(info.Info.ExceptionCode, this.config.PassExceptions))
+            {
+                this.logger.Info("[{0}] Passing the exception to the application (first-chance).", this.workerId);
+                return;
             }
 
             FaultReport thisReport = BuildFaultReport(debugger, info);
@@ -429,6 +421,29 @@ namespace Fuzzman.Agent
         }
 
         #endregion
+
+        private bool CheckExceptionName(EXCEPTION_CODE code, string[] against)
+        {
+            if (against == null)
+                return false;
+
+            foreach (string passedExceptionName in against)
+            {
+                try
+                {
+                    EXCEPTION_CODE passedException = (EXCEPTION_CODE)Enum.Parse(typeof(EXCEPTION_CODE), passedExceptionName);
+                    if (code == passedException)
+                    {
+                        return true;
+                    }
+                }
+                catch (ArgumentException)
+                {
+                    this.logger.Error("Unrecognized exception name: {0}", passedExceptionName);
+                }
+            }
+            return false;
+        }
 
         private FaultReport BuildFaultReport(IDebugger debugger, ExceptionEventParams info)
         {
