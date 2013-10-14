@@ -84,14 +84,47 @@ namespace Fuzzman.Agent
             builder.Replace("{DATETIME}", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
             builder.Replace("{SUMMARY}", summary);
 
-            Directory.Move(this.WorkingDirectory, Path.Combine(this.SaveDirectory, builder.ToString()));
+            int retryCount = 10;
+            do
+            {
+                try
+                {
+                    Directory.Move(this.WorkingDirectory, Path.Combine(this.SaveDirectory, builder.ToString()));
+                    break;
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Bah! Failed to move the working directory!");
+                    --retryCount;
+                    Thread.Sleep(2500);
+                }
+            } while (retryCount > 0);
+            if (retryCount == 0)
+            {
+                // Save the data, at least...
+                this.WorkingDirectory = "";
+            }
         }
 
         public void Cleanup()
         {
             if (Directory.Exists(this.WorkingDirectory))
             {
-                Directory.Delete(this.WorkingDirectory, true);
+                int retryCount = 10;
+                do
+                {
+                    try
+                    {
+                        Directory.Delete(this.WorkingDirectory, true);
+                        break;
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine("Bah! Failed to delete the working directory!");
+                        --retryCount;
+                        Thread.Sleep(2500);
+                    }
+                } while (retryCount > 0);
             }
         }
 

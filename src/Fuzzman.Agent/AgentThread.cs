@@ -130,7 +130,7 @@ namespace Fuzzman.Agent
         {
             testCase = new TestCase();
 
-            this.logger.Info("[{0}] *** Test case #{1} setting up.", this.workerId, testCase.TestCaseNumber);
+            this.logger.Fatal("[{0}] *** Test case #{1} setting up.", this.workerId, testCase.TestCaseNumber);
 
             uint sourceIndex = rng.GetNext(0, (uint)this.config.Sources.Length);
             string currentSource = this.config.Sources[sourceIndex];

@@ -5,6 +5,8 @@ namespace Fuzzman.Core.Interop
 {
     public enum EXCEPTION_CODE : uint
     {
+        EXCEPTION_SUCCESS = NTSTATUS.STATUS_SUCCESS,
+
         DBG_CONTROL_C = 0x40010005,
         DBG_PRINTEXCEPTION_C = 0x40010006,
         DBG_RIPEXCEPTION = 0x40010007,

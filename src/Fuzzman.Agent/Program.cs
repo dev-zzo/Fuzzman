@@ -38,6 +38,19 @@ namespace Fuzzman.Agent
 
             LogManager.Initialize(config.LogFilePath);
 
+            if (!String.IsNullOrEmpty(config.LogLevel))
+            {
+                try
+                {
+                    LogLevel level = (LogLevel)Enum.Parse(typeof(LogLevel), config.LogLevel);
+                    LogManager.GetLogger().SetLevel(level);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Failed to apply logging level:\n{0}", ex.ToString());
+                }
+            }
+
             Agent a = new Agent(options, config.Agent);
             a.Start();
             while (true)

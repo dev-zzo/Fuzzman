@@ -3,6 +3,15 @@ using System.IO;
 
 namespace Fuzzman.Core
 {
+    public enum LogLevel
+    {
+        FATAL,
+        ERROR,
+        WARN,
+        INFO,
+        DEBUG,
+    }
+
     /// <summary>
     /// Manages the access to logging facility.
     /// </summary>
@@ -30,14 +39,25 @@ namespace Fuzzman.Core
     {
         public LameFileLogger(string path)
         {
+            this.minLevel = LogLevel.INFO;
             this.path = path;
+            if (!Directory.Exists(Path.GetDirectoryName(path)))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+            }
+
             this.stream = new FileStream(this.path, FileMode.Append);
             this.writer = new StreamWriter(this.stream);
         }
 
+        public void SetLevel(LogLevel level)
+        {
+            this.minLevel = level;
+        }
+
         public void Debug(string message)
         {
-            this.Write("DEBUG", message);
+            this.Write(LogLevel.DEBUG, message);
         }
 
         public void Debug(string format, params object[] args)
@@ -47,7 +67,7 @@ namespace Fuzzman.Core
 
         public void Info(string message)
         {
-            this.Write("INFO", message);
+            this.Write(LogLevel.INFO, message);
         }
 
         public void Info(string format, params object[] args)
@@ -57,7 +77,7 @@ namespace Fuzzman.Core
 
         public void Warning(string message)
         {
-            this.Write("WARN", message);
+            this.Write(LogLevel.WARN, message);
         }
 
         public void Warning(string format, params object[] args)
@@ -67,7 +87,7 @@ namespace Fuzzman.Core
 
         public void Error(string message)
         {
-            this.Write("ERROR", message);
+            this.Write(LogLevel.ERROR, message);
         }
 
         public void Error(string format, params object[] args)
@@ -77,7 +97,7 @@ namespace Fuzzman.Core
 
         public void Fatal(string message)
         {
-            this.Write("FATAL", message);
+            this.Write(LogLevel.FATAL, message);
         }
 
         public void Fatal(string format, params object[] args)
@@ -85,13 +105,17 @@ namespace Fuzzman.Core
             this.Fatal(String.Format(format, args));
         }
 
+        private LogLevel minLevel;
         private string path;
         private FileStream stream;
         private StreamWriter writer;
 
-        private void Write(string level, string message)
+        private void Write(LogLevel level, string message)
         {
-            string line = String.Format("[{0,5}] {1}", level, message);
+            if (level > this.minLevel)
+                return;
+
+            string line = String.Format("[{0,5}] {1}", level.ToString(), message);
             lock (this.writer)
             {
                 writer.WriteLine(line);

@@ -7,6 +7,8 @@ namespace Fuzzman.Core
     /// </summary>
     public interface ILogger
     {
+        void SetLevel(LogLevel level);
+
         void Debug(string message);
         void Debug(string format, params object[] args);
 
