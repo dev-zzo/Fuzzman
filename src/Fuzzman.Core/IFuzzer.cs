@@ -3,6 +3,6 @@ namespace Fuzzman.Core
 {
     public interface IFuzzer
     {
-        void Process(string target);
+        Difference[] Process(string target);
     }
 }

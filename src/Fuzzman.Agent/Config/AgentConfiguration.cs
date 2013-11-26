@@ -1,6 +1,7 @@
 ﻿using System.Xml.Serialization;
 using Fuzzman.Agent.Actions;
 using Fuzzman.Core.Monitor;
+using Fuzzman.Core.Debugger;
 
 namespace Fuzzman.Agent.Config
 {
@@ -11,7 +12,6 @@ namespace Fuzzman.Agent.Config
         {
             this.TestCasesPath = "";
             this.TestCaseTemplate = "{DATETIME}-TC{TCN}";
-            this.Timeout = 30;
             this.RunCount = 10;
             this.DisableDebugHeap = true;
         }
@@ -25,11 +25,6 @@ namespace Fuzzman.Agent.Config
         /// Which process to watch for (exe name with extension).
         /// </summary>
         public string ProcessName { get; set; }
-
-        /// <summary>
-        /// Target timeout, in seconds.
-        /// </summary>
-        public int Timeout { get; set; }
 
         /// <summary>
         /// How many times to run the test case, if the first run raised an exception.
@@ -55,6 +50,12 @@ namespace Fuzzman.Agent.Config
         public string[] IgnoreExceptions { get; set; }
 
         /// <summary>
+        /// Which exception locations to ignore.
+        /// </summary>
+        [XmlArrayItem("Location")]
+        public Location[] IgnoreLocations { get; set; }
+
+        /// <summary>
         /// Where to keep the test cases.
         /// </summary>
         public string TestCasesPath { get; set; }
@@ -70,7 +71,15 @@ namespace Fuzzman.Agent.Config
         /// </summary>
         public bool DisableDebugHeap { get; set; }
 
+        /// <summary>
+        /// Whether the target is a console app.
+        /// No attempt to gracefully close a console app will be done.
+        /// </summary>
+        public bool IsConsoleApp { get; set; }
+
         public ProcessIdleMonitorConfig ProcessIdleMonitor { get; set; }
+
+        public TimeoutMonitorConfig TimeoutMonitor { get; set; }
 
         [XmlArrayItem("DeleteRegistryKey", Type = typeof(DeleteRegistryKeyAction))]
         [XmlArrayItem("DeleteRegistryValue", Type = typeof(DeleteRegistryValueAction))]

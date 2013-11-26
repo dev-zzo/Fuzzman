@@ -56,8 +56,10 @@
     <Compile Include="FaultReport.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Runner.cs" />
     <Compile Include="TestCase.cs" />
     <Compile Include="TestCaseAnalyser.cs" />
+    <Compile Include="TestRun.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Fuzzman.Core\Fuzzman.Core.csproj">

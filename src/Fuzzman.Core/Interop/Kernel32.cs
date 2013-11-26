@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -63,6 +64,22 @@ namespace Fuzzman.Core.Interop
         SectionImage = 0x1000000,
         SectionNoCache = 0x10000000,
         SectionReserve = 0x4000000,
+    }
+
+    [Flags]
+    public enum AllocationProtect : uint
+    {
+        PAGE_NOACCESS = 0x00000001,
+        PAGE_READONLY = 0x00000002,
+        PAGE_READWRITE = 0x00000004,
+        PAGE_WRITECOPY = 0x00000008,
+        PAGE_EXECUTE = 0x00000010,
+        PAGE_EXECUTE_READ = 0x00000020,
+        PAGE_EXECUTE_READWRITE = 0x00000040,
+        PAGE_EXECUTE_WRITECOPY = 0x00000080,
+        PAGE_GUARD = 0x00000100,
+        PAGE_NOCACHE = 0x00000200,
+        PAGE_WRITECOMBINE = 0x00000400,
     }
 
     [Flags]
@@ -250,6 +267,13 @@ namespace Fuzzman.Core.Interop
             StringBuilder lpBuffer,
             int nSize,
             IntPtr Arguments);
+
+        [DllImport("kernel32.dll")]
+        public static extern int VirtualQueryEx(
+            IntPtr hProcess,
+            IntPtr lpAddress,
+            out MEMORY_BASIC_INFORMATION lpBuffer,
+            uint dwLength);
     }
 
     public static class Kernel32Helpers
@@ -272,6 +296,35 @@ namespace Fuzzman.Core.Interop
                 i--;
             sb.Length = i;
             return sb.ToString();
+        }
+
+        public static List<MEMORY_BASIC_INFORMATION> GetMappedRegions(IntPtr handleProcess)
+        {
+            List<MEMORY_BASIC_INFORMATION> mappedRegions = new List<MEMORY_BASIC_INFORMATION>();
+            const ulong maxAddress = 0x7fffffff;
+            ulong address = 0;
+
+            do
+            {
+                MEMORY_BASIC_INFORMATION m;
+                int result = Kernel32.VirtualQueryEx(
+                    handleProcess,
+                    (IntPtr)address,
+                    out m,
+                    (uint)Marshal.SizeOf(typeof(MEMORY_BASIC_INFORMATION)));
+                if (result <= 0)
+                {
+                    return null;
+                }
+
+                mappedRegions.Add(m);
+
+                if (address == (ulong)m.BaseAddress + (ulong)m.RegionSize)
+                    break;
+                address = (ulong)m.BaseAddress + (ulong)m.RegionSize;
+            } while (address <= maxAddress);
+
+            return mappedRegions;
         }
     }
 }

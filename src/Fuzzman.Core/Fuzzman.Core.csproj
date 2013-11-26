@@ -39,6 +39,7 @@
     <Compile Include="Debugger\DebuggerHelper.cs" />
     <Compile Include="Debugger\DebugInfo\ExceptionDebugInfo.cs" />
     <Compile Include="Debugger\Events.cs" />
+    <Compile Include="Debugger\Location.cs" />
     <Compile Include="Debugger\ModuleInfo.cs" />
     <Compile Include="Debugger\Native\NativeDebugger.cs" />
     <Compile Include="Debugger\ProcessInfo.cs" />
@@ -52,7 +53,10 @@
     <Compile Include="Interop\Rtl.cs" />
     <Compile Include="Monitor\ProcessIdleMonitor.cs" />
     <Compile Include="Monitor\ProcessIdleMonitorConfig.cs" />
+    <Compile Include="Monitor\TimeoutMonitor.cs" />
+    <Compile Include="Monitor\TimeoutMonitorConfig.cs" />
     <Compile Include="Mutator\BitFlipper.cs" />
+    <Compile Include="Difference.cs" />
     <Compile Include="Mutator\ValueSetter.cs" />
     <Compile Include="Mutator\ByteSlapper.cs" />
     <Compile Include="IAgent.cs" />

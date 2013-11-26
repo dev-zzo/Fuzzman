@@ -124,7 +124,7 @@ namespace Fuzzman.Core.Debugger.Simple
             return modules;
         }
 
-        public static string LocateModuleOffset(IntPtr processHandle, IntPtr processPebAddress, IntPtr targetAddress)
+        public static Location LocateModuleOffset(IntPtr processHandle, IntPtr processPebAddress, IntPtr targetAddress)
         {
             List<ModuleInfo> modules = BuildModuleList(processHandle, processPebAddress);
             foreach (ModuleInfo module in modules)
@@ -134,9 +134,9 @@ namespace Fuzzman.Core.Debugger.Simple
                     continue;
                 if (diff > module.MappedSize)
                     continue;
-                return String.Format("{0}+0x{1:X8}", module.Name, (uint)diff);
+                return new Location() { ModuleName = module.Name, Offset = (uint)diff };
             }
-            return "???";
+            return null;
         }
     }
 }

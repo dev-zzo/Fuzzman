@@ -1,4 +1,5 @@
-﻿using Fuzzman.Core.Platform.Mmap;
+﻿using System.Collections.Generic;
+using Fuzzman.Core.Platform.Mmap;
 
 namespace Fuzzman.Core.Mutator
 {
@@ -12,10 +13,15 @@ namespace Fuzzman.Core.Mutator
             this.rng = rng;
         }
 
-        public void Process(MappedFileView view)
+        public void Process(MappedFileView view, List<Difference> diffs)
         {
             uint offset = rng.GetNext(0, view.Length);
-            view[offset] = (byte)rng.GetNext(0, byte.MaxValue + 1);
+            diffs.Add(new Difference()
+            {
+                Offset = offset,
+                OldValue = view[offset],
+                NewValue = (byte)rng.GetNext(0, byte.MaxValue + 1),
+            });
         }
 
         private IRandom rng;

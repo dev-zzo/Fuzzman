@@ -27,7 +27,7 @@ namespace Fuzzman.Agent
             this.threads = new AgentThread[this.options.ParallelInstances];
             for (int i = 0; !this.isStopping && i < this.threads.Length; ++i)
             {
-                AgentThread agent = new AgentThread(i, this.config);
+                AgentThread agent = new AgentThread(i, this.config, this.options.RandomSeed);
                 this.threads[i] = agent;
                 agent.Start();
                 // Allow for some time difference not to kill the system on start.

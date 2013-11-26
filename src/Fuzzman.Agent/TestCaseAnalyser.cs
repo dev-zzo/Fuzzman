@@ -105,7 +105,7 @@ namespace Fuzzman.Agent
             foreach (FaultReport report in this.mergedReports)
             {
                 ExceptionFaultReport efr = report as ExceptionFaultReport;
-                string location = efr.Location != "???" ? efr.Location : efr.OffendingVA.ToString("X8");
+                string location = efr.Location != null ? efr.Location.ToString() : efr.OffendingVA.ToString("X8");
                 if (!locations.Contains(location))
                 {
                     locations.Add(location);
@@ -148,8 +148,8 @@ namespace Fuzzman.Agent
 
         private void AnalyseFaultReport(AccessViolationFaultReport report)
         {
-            string location = report.Location != "???" 
-                ? String.Format("{0} ({1:X8})", report.Location, (uint)report.OffendingVA) 
+            string location = report.Location != null
+                ? String.Format("{0} ({1:X8})", report.Location.ToString(), (uint)report.OffendingVA) 
                 : report.OffendingVA.ToString("X8");
             this.reportBuilder.AppendFormat("Access violation ({0}) at {1} -> {2:X8}\r\n",
                 report.AccessType,
@@ -163,8 +163,8 @@ namespace Fuzzman.Agent
 
         private void AnalyseFaultReport(ExceptionFaultReport report)
         {
-            string location = report.Location != "???"
-                ? String.Format("{0} ({1:X8})", report.Location, (uint)report.OffendingVA)
+            string location = report.Location != null
+                ? String.Format("{0} ({1:X8})", report.Location.ToString(), (uint)report.OffendingVA)
                 : report.OffendingVA.ToString("X8");
             this.reportBuilder.AppendFormat("Exception {0} ({1:X8}) at {2}\r\n",
                 report.ExceptionCode,
