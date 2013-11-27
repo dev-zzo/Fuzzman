@@ -62,11 +62,11 @@ namespace Fuzzman.Agent
         public override bool Equals(object obj)
         {
             ExceptionFaultReport efr = obj as ExceptionFaultReport;
-            if (efr == null)
+            if ((object)efr == null)
                 return false;
             if (this.ExceptionCode != efr.ExceptionCode)
                 return false;
-            if (this.Location != null && !this.Location.Equals(efr.Location))
+            if (this.Location != null && this.Location != efr.Location)
                 return false;
             if (this.Location == null && this.OffendingVA != efr.OffendingVA)
                 return false;
@@ -96,7 +96,7 @@ namespace Fuzzman.Agent
         public override bool Equals(object obj)
         {
             AccessViolationFaultReport avfr = obj as AccessViolationFaultReport;
-            if (avfr == null)
+            if ((object)avfr == null)
                 return false;
             if (this.AccessType != avfr.AccessType)
                 return false;
