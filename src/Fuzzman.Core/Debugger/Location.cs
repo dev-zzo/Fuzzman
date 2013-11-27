@@ -27,13 +27,23 @@ namespace Fuzzman.Core.Debugger
             }
         }
 
+        public static bool operator ==(Location lhs, Location rhs)
+        {
+            return lhs.Equals(rhs);
+        }
+
+        public static bool operator !=(Location lhs, Location rhs)
+        {
+            return !lhs.Equals(rhs);
+        }
+
         public override bool Equals(object obj)
         {
             if (obj == null)
                 return false;
-            Location other = obj as Location;
-            if (other == null)
+            if (!(obj is Location))
                 return false;
+            Location other = obj as Location;
             return this.ModuleName == other.ModuleName && this.Offset == other.Offset;
         }
 
