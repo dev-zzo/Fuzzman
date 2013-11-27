@@ -199,7 +199,7 @@ namespace Fuzzman.Agent
                     {
                         this.debugger.WaitAndDispatchEvent();
 
-                        // Account for state switch (when an exception occurs).
+                        // Account for state switch (when an exception occurs or another kill event).
                         if (this.state != State.StopTarget)
                         {
                             return this.state;
@@ -408,7 +408,7 @@ namespace Fuzzman.Agent
         private void OnKillProcess()
         {
             this.logger.Info("A monitor reports the target may be killed now.");
-            this.state = State.StopTarget;
+            this.state = this.state != State.StopTarget ? State.StopTarget : State.TerminateTarget;
         }
 
         #endregion

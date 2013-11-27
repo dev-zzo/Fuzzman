@@ -12,16 +12,23 @@ namespace Fuzzman.Core.Monitor
 
         public void Start()
         {
-            this.timer = new Timer(this.TimerCallback, null, this.config.Interval * 1000, Timeout.Infinite);
+            this.timer = new Timer(this.TimerCallback, null, Timeout.Infinite, Timeout.Infinite);
         }
 
         public void Attach(uint pid)
         {
+            if (this.timer != null)
+            {
+                this.timer.Change(this.config.Interval * 1000, this.config.Interval * 1000);
+            }
         }
 
         public void Detach()
         {
-            this.Stop();
+            //if (this.timer != null)
+            //{
+            //    this.timer.Change(Timeout.Infinite, Timeout.Infinite);
+            //}
         }
 
         public void Stop()
@@ -40,7 +47,6 @@ namespace Fuzzman.Core.Monitor
             if (this.KillTargetEvent != null)
             {
                 this.KillTargetEvent();
-                this.Stop();
             }
         }
     }

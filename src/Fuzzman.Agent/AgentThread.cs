@@ -178,6 +178,10 @@ namespace Fuzzman.Agent
                             } while (retryCount > 0);
                         }
                     }
+                    else
+                    {
+                        this.logger.Info("[{0}] Nothing interesting.", this.workerId);
+                    }
 
                     // Cleanup
                     if (Directory.Exists(workingDirectory))
