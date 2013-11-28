@@ -3,7 +3,7 @@
 namespace Fuzzman.Core.Monitor
 {
     [XmlType(TypeName = "TimeoutMonitor")]
-    public class TimeoutMonitorConfig
+    public class TimeoutMonitorConfig : MonitorConfigBase
     {
         public TimeoutMonitorConfig()
         {

@@ -5,7 +5,7 @@ using Fuzzman.Core.Interop;
 
 namespace Fuzzman.Core.Monitor
 {
-    public class ProcessIdleMonitor : IMonitor
+    public class ProcessIdleMonitor : IProcessMonitor
     {
         public ProcessIdleMonitor()
         {

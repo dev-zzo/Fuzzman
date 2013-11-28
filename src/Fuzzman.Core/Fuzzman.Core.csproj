@@ -46,11 +46,16 @@
     <Compile Include="Debugger\Simple\SimpleDebugger.cs" />
     <Compile Include="Debugger\ThreadInfo.cs" />
     <Compile Include="IFuzzer.cs" />
-    <Compile Include="IMonitor.cs" />
+    <Compile Include="IGlobalMonitor.cs" />
+    <Compile Include="Interop\User32.cs" />
+    <Compile Include="IProcessMonitor.cs" />
     <Compile Include="Interop\DbgHelp\DbgHelp.cs" />
     <Compile Include="Interop\DbgKm.cs" />
     <Compile Include="Interop\Ntdll.cs" />
     <Compile Include="Interop\Rtl.cs" />
+    <Compile Include="Monitor\MonitorConfigBase.cs" />
+    <Compile Include="Monitor\PopupMonitorConfig.cs" />
+    <Compile Include="Monitor\PopupMonitor.cs" />
     <Compile Include="Monitor\ProcessIdleMonitor.cs" />
     <Compile Include="Monitor\ProcessIdleMonitorConfig.cs" />
     <Compile Include="Monitor\TimeoutMonitor.cs" />

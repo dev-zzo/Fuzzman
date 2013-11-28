@@ -3,7 +3,7 @@
 namespace Fuzzman.Core.Monitor
 {
     [XmlType(TypeName = "ProcessIdleMonitor")]
-    public class ProcessIdleMonitorConfig
+    public class ProcessIdleMonitorConfig : MonitorConfigBase
     {
         public ProcessIdleMonitorConfig()
         {

@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace Fuzzman.Core.Monitor
 {
-    public class TimeoutMonitor : IMonitor
+    public class TimeoutMonitor : IProcessMonitor
     {
         public TimeoutMonitor(TimeoutMonitorConfig config)
         {

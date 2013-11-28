@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -6,6 +7,7 @@ using Fuzzman.Agent.Config;
 using Fuzzman.Agent.Fuzzers;
 using Fuzzman.Core;
 using Fuzzman.Core.Debugger;
+using Fuzzman.Core.Monitor;
 using Fuzzman.Core.Platform.Mmap;
 
 namespace Fuzzman.Agent
@@ -54,6 +56,7 @@ namespace Fuzzman.Agent
         private readonly ILogger logger = LogManager.GetLogger("AgentThread");
         private readonly int workerId;
         private readonly AgentConfiguration config;
+        private readonly List<IGlobalMonitor> monitors = new List<IGlobalMonitor>();
         private int startSeed;
         private Thread thread;
         private bool aborting;
@@ -62,6 +65,8 @@ namespace Fuzzman.Agent
 
         private void ThreadProc()
         {
+            this.CreateMonitors();
+
             try
             {
                 while (!this.aborting)
@@ -206,6 +211,37 @@ namespace Fuzzman.Agent
             }
             catch (Exception ex)
             {
+            }
+
+            this.TerminateMonitors();
+        }
+
+        private void CreateMonitors()
+        {
+            if (this.config.GlobalMonitors == null)
+                return;
+
+            foreach (MonitorConfigBase configBase in this.config.GlobalMonitors)
+            {
+                // Still a bit hacky...
+                IGlobalMonitor monitor = null;
+                if (configBase is PopupMonitorConfig)
+                {
+                    monitor = new PopupMonitor(configBase as PopupMonitorConfig);
+                }
+                if (monitor != null)
+                {
+                    monitor.Start();
+                    this.monitors.Add(monitor);
+                }
+            }
+        }
+
+        private void TerminateMonitors()
+        {
+            foreach (IGlobalMonitor monitor in this.monitors)
+            {
+                monitor.Stop();
             }
         }
 

@@ -250,6 +250,7 @@ namespace Fuzzman.Core.Interop
         #endregion
 
         [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(
             IntPtr hObject);
 

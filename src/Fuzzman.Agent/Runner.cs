@@ -62,7 +62,7 @@ namespace Fuzzman.Agent
         private State state;
         private Thread thread;
         private string commandLine;
-        private readonly List<IMonitor> monitors = new List<IMonitor>();
+        private readonly List<IProcessMonitor> monitors = new List<IProcessMonitor>();
         private IDebugger debugger;
         private uint targetPid;
         private bool doneWithTarget; // True when all the processes have exited.
@@ -275,29 +275,33 @@ namespace Fuzzman.Agent
 
         private void CreateMonitors()
         {
-            // TODO: Think of a better way of doing this...
-            if (this.config.ProcessIdleMonitor != null)
-            {
-                ProcessIdleMonitor pim = new ProcessIdleMonitor(this.config.ProcessIdleMonitor);
-                pim.KillTargetEvent += new KillTargetEventHandler(this.OnKillProcess);
-                this.monitors.Add(pim);
-            }
-            if (this.config.TimeoutMonitor != null)
-            {
-                TimeoutMonitor tm = new TimeoutMonitor(this.config.TimeoutMonitor);
-                tm.KillTargetEvent += new KillTargetEventHandler(this.OnKillProcess);
-                this.monitors.Add(tm);
-            }
+            if (this.config.ProcessMonitors == null)
+                return;
 
-            foreach (IMonitor monitor in this.monitors)
+            foreach (MonitorConfigBase configBase in this.config.ProcessMonitors)
             {
-                monitor.Start();
+                // Still a bit hacky...
+                IProcessMonitor monitor = null;
+                if (configBase is ProcessIdleMonitorConfig)
+                {
+                    monitor = new ProcessIdleMonitor(configBase as ProcessIdleMonitorConfig);
+                }
+                if (configBase is TimeoutMonitorConfig)
+                {
+                    monitor = new TimeoutMonitor(configBase as TimeoutMonitorConfig);
+                }
+                if (monitor != null)
+                {
+                    monitor.KillTargetEvent += new KillTargetEventHandler(this.OnKillProcess);
+                    monitor.Start();
+                    this.monitors.Add(monitor);
+                }
             }
         }
 
         private void AttachMonitors(uint pid)
         {
-            foreach (IMonitor monitor in this.monitors)
+            foreach (IProcessMonitor monitor in this.monitors)
             {
                 monitor.Attach(pid);
             }
@@ -305,7 +309,7 @@ namespace Fuzzman.Agent
 
         private void DetachMonitors()
         {
-            foreach (IMonitor monitor in this.monitors)
+            foreach (IProcessMonitor monitor in this.monitors)
             {
                 monitor.Detach();
             }
@@ -313,7 +317,7 @@ namespace Fuzzman.Agent
 
         private void TerminateMonitors()
         {
-            foreach (IMonitor monitor in this.monitors)
+            foreach (IProcessMonitor monitor in this.monitors)
             {
                 monitor.Stop();
             }

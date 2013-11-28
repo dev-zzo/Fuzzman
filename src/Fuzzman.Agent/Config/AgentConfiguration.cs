@@ -2,6 +2,7 @@
 using Fuzzman.Agent.Actions;
 using Fuzzman.Core.Monitor;
 using Fuzzman.Core.Debugger;
+using Fuzzman.Core;
 
 namespace Fuzzman.Agent.Config
 {
@@ -77,10 +78,22 @@ namespace Fuzzman.Agent.Config
         /// </summary>
         public bool IsConsoleApp { get; set; }
 
-        public ProcessIdleMonitorConfig ProcessIdleMonitor { get; set; }
+        /// <summary>
+        /// Process monitors to be instantiated.
+        /// </summary>
+        [XmlArrayItem("ProcessIdleMonitor", Type = typeof(ProcessIdleMonitorConfig))]
+        [XmlArrayItem("TimeoutMonitor", Type = typeof(TimeoutMonitorConfig))]
+        public MonitorConfigBase[] ProcessMonitors { get; set; }
 
-        public TimeoutMonitorConfig TimeoutMonitor { get; set; }
+        /// <summary>
+        /// Global monitors to be instantiated.
+        /// </summary>
+        [XmlArrayItem("PopupMonitor", Type = typeof(PopupMonitorConfig))]
+        public MonitorConfigBase[] GlobalMonitors { get; set; }
 
+        /// <summary>
+        /// Actions to perform when the target process is killed.
+        /// </summary>
         [XmlArrayItem("DeleteRegistryKey", Type = typeof(DeleteRegistryKeyAction))]
         [XmlArrayItem("DeleteRegistryValue", Type = typeof(DeleteRegistryValueAction))]
         [XmlArrayItem("DeleteFile", Type = typeof(DeleteFileAction))]
