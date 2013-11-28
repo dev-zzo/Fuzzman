@@ -170,6 +170,13 @@ namespace Fuzzman.Agent
 
             this.debugger.WaitAndDispatchEvent();
 
+            if (this.doneWithTarget)
+            {
+                // Can happen if the process closes.
+                // Clean up, as in this case, we didn't get a thing.
+                return State.Cleanup;
+            }
+
             // Stay within the current state, whatever it is.
             return this.state;
         }
