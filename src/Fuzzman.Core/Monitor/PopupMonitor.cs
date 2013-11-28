@@ -41,7 +41,12 @@ namespace Fuzzman.Core.Monitor
             User32.GetWindowText(hWnd, windowText, 256);
             if (windowText.ToString() == this.config.WatchFor)
             {
-                User32.PostMessage(hWnd, (uint)WM.SYSCOMMAND, (IntPtr)SC.CLOSE, IntPtr.Zero);
+                StringBuilder windowClass = new StringBuilder(256);
+                User32.GetClassName(hWnd, windowClass, 256);
+                if (windowClass.ToString() == "#32770")
+                {
+                    User32.PostMessage(hWnd, (uint)WM.SYSCOMMAND, (IntPtr)SC.CLOSE, IntPtr.Zero);
+                }
             }
             return true;
         }
