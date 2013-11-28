@@ -119,7 +119,7 @@ namespace Fuzzman.Agent
                     }
                     else
                     {
-                        this.logger.Error("The runner thread has thrown an exception when handling the previous failure:\r\n{1}", ex.ToString());
+                        this.logger.Error("The runner thread has thrown an exception when handling the previous failure:\r\n{0}", ex.ToString());
                         this.state = State.Stopped;
                     }
                 }
@@ -264,7 +264,7 @@ namespace Fuzzman.Agent
                 System.Diagnostics.Debugger.Break();
             }
 
-            this.logger.Error("The runner thread has thrown an exception:\r\n{1}", this.failureReason.ToString());
+            this.logger.Error("The runner thread has thrown an exception:\r\n{0}", this.failureReason.ToString());
             this.thisRun.Result = TestRunResult.Failed;
             return State.TerminateTarget;
         }
@@ -432,7 +432,7 @@ namespace Fuzzman.Agent
                 }
                 catch (ArgumentException)
                 {
-                    this.logger.Error("Unrecognized exception name: {1}", passedExceptionName);
+                    this.logger.Error("Unrecognized exception name: {0}", passedExceptionName);
                 }
             }
             return false;
