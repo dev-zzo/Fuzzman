@@ -9,6 +9,7 @@ using Fuzzman.Core;
 using Fuzzman.Core.Debugger;
 using Fuzzman.Core.Monitor;
 using Fuzzman.Core.Platform.Mmap;
+using System.Reflection;
 
 namespace Fuzzman.Agent
 {
@@ -53,7 +54,7 @@ namespace Fuzzman.Agent
             }
         }
 
-        private readonly ILogger logger = LogManager.GetLogger("AgentThread");
+        private readonly ILogger logger = LogManager.GetLogger();
         private readonly int workerId;
         private readonly AgentConfiguration config;
         private readonly List<IGlobalMonitor> monitors = new List<IGlobalMonitor>();
@@ -66,6 +67,9 @@ namespace Fuzzman.Agent
         private void ThreadProc()
         {
             this.CreateMonitors();
+
+            Assembly asm = Assembly.GetExecutingAssembly();
+            Type fuzzerType = asm.GetType("Fuzzman.Agent.Fuzzers." + this.config.FuzzerType);
 
             try
             {
@@ -83,7 +87,8 @@ namespace Fuzzman.Agent
                         this.startSeed = 0;
                     }
                     IRandom rng = new StdRandom(seed);
-                    IFuzzer fuzzer = new DumbFuzzer(rng);
+
+                    IFuzzer fuzzer = (IFuzzer)Activator.CreateInstance(fuzzerType, new object[] { rng });
 
                     // Build a new test case.
                     this.testCase = new TestCase();
@@ -92,21 +97,22 @@ namespace Fuzzman.Agent
 
                     uint sourceIndex = rng.GetNext(0, (uint)this.config.Sources.Length);
                     string currentSource = this.config.Sources[sourceIndex];
-                    this.logger.Debug("[{0}] Using source: {1}", this.workerId, currentSource);
+                    this.logger.Info("[{0}] Using source: {1}", this.workerId, currentSource);
+                    fuzzer.Populate(currentSource);
 
-                    string workingDirectory = Path.Combine(this.config.TestCasesPath, Path.GetRandomFileName());
+                    string workId = String.Format("probe.{0}", this.workerId);
+                    string workingDirectory = Path.Combine(this.config.TestCasesPath, workId);
                     Directory.CreateDirectory(workingDirectory);
+                    ILogger runnerLogger = LogManager.GetLogger(Path.Combine(workId, "fuzzman.log"));
 
                     string sampleFileName = Path.GetFileName(currentSource);
                     string samplePath = Path.Combine(workingDirectory, sampleFileName);
 
-                    Difference[] diffs = fuzzer.Process(currentSource);
-                    this.ApplyDifferences(diffs, currentSource, samplePath);
-
                     // Run target for probe.
                     this.logger.Info("[{0}] Running a probe run.", this.workerId);
+                    fuzzer.Apply(currentSource, samplePath);
                     string commandLine = this.BuildCommandLine(samplePath);
-                    this.runner = new Runner(this.config, this.logger);
+                    this.runner = new Runner(this.config, runnerLogger);
                     TestRun testResult = this.runner.RunTestCase(commandLine);
                     if (this.aborting)
                         break;
@@ -115,11 +121,11 @@ namespace Fuzzman.Agent
                     {
                         // Repeat runs.
                         this.logger.Info("[{0}] Running statistical runs.", this.workerId);
-                        while (this.testCase.RunCount < this.config.RunCount)
+                        while (this.testCase.RunCount < this.config.RunCount && !this.aborting)
                         {
                             this.testCase.RunCount++;
 
-                            this.runner = new Runner(this.config, this.logger);
+                            this.runner = new Runner(this.config, runnerLogger);
                             testResult = this.runner.RunTestCase(commandLine);
 
                             if (this.IsValidResult(testResult))
@@ -150,37 +156,23 @@ namespace Fuzzman.Agent
                                 string minimalSampleName = "minimal" + Path.GetExtension(currentSource);
                                 string minimalSamplePath = Path.Combine(workingDirectory, minimalSampleName);
 
-                                for (int i = 0; i < diffs.Length; ++i)
+                                for (int i = 0; i < fuzzer.Diffs.Length; ++i)
                                 {
-                                    diffs[i].Ignored = true;
-                                    this.ApplyDifferences(diffs, currentSource, minimalSamplePath);
+                                    fuzzer.Diffs[i].Ignored = true;
+                                    fuzzer.Apply(currentSource, minimalSamplePath);
 
                                     this.runner = new Runner(this.config, this.logger);
                                     testResult = this.runner.RunTestCase(BuildCommandLine(minimalSamplePath));
 
                                     if (!this.IsValidResult(testResult))
                                     {
-                                        diffs[i].Ignored = false;
+                                        fuzzer.Diffs[i].Ignored = false;
                                     }
                                 }
                                 this.logger.Info("[{0}] Minimization runs complete.", this.workerId);
                             }
 
-                            int retryCount = 10;
-                            do
-                            {
-                                try
-                                {
-                                    Directory.Move(workingDirectory, Path.Combine(this.config.TestCasesPath, builder.ToString()));
-                                    break;
-                                }
-                                catch (Exception)
-                                {
-                                    Console.WriteLine("Bah! Failed to move the working directory!");
-                                    --retryCount;
-                                    Thread.Sleep(2500);
-                                }
-                            } while (retryCount > 0);
+                            TryMoveDirectory(workingDirectory, Path.Combine(this.config.TestCasesPath, builder.ToString()));
                         }
                     }
                     else
@@ -189,24 +181,7 @@ namespace Fuzzman.Agent
                     }
 
                     // Cleanup
-                    if (Directory.Exists(workingDirectory))
-                    {
-                        int retryCount = 10;
-                        do
-                        {
-                            try
-                            {
-                                Directory.Delete(workingDirectory, true);
-                                break;
-                            }
-                            catch (Exception)
-                            {
-                                Console.WriteLine("Bah! Failed to delete the working directory!");
-                                --retryCount;
-                                Thread.Sleep(2500);
-                            }
-                        } while (retryCount > 0);
-                    }
+                    TryDeleteDirectory(workingDirectory);
                 }
             }
             catch (Exception ex)
@@ -215,6 +190,20 @@ namespace Fuzzman.Agent
 
             this.TerminateMonitors();
         }
+
+        private string BuildCommandLine(string samplePath)
+        {
+            StringBuilder builder = new StringBuilder(this.config.CommandLine, 256);
+            builder.Replace("{TARGET}", samplePath);
+            return builder.ToString();
+        }
+
+        private bool IsValidResult(TestRun testResult)
+        {
+            return testResult.Result == TestRunResult.ThrewException && !CheckExceptionLocation(testResult.ExReport.Location, this.config.IgnoreLocations);
+        }
+
+        #region Monitors handling
 
         private void CreateMonitors()
         {
@@ -245,17 +234,7 @@ namespace Fuzzman.Agent
             }
         }
 
-        private string BuildCommandLine(string samplePath)
-        {
-            StringBuilder builder = new StringBuilder(this.config.CommandLine, 256);
-            builder.Replace("{TARGET}", samplePath);
-            return builder.ToString();
-        }
-
-        private bool IsValidResult(TestRun testResult)
-        {
-            return testResult.Result == TestRunResult.ThrewException && !CheckExceptionLocation(testResult.ExReport.Location, this.config.IgnoreLocations);
-        }
+        #endregion
 
         private bool CheckExceptionLocation(Location thisLocation, Location[] against)
         {
@@ -271,25 +250,49 @@ namespace Fuzzman.Agent
             return false;
         }
 
-        private void ApplyDifferences(Difference[] diffs, string originalPath, string targetPath)
+        private static void TryMoveDirectory(string source, string target)
         {
-            if (File.Exists(targetPath))
+            if (Directory.Exists(source))
             {
-                File.Delete(targetPath);
-            }
-            File.Copy(originalPath, targetPath);
-
-            using (MappedFile mapped = new MappedFile(targetPath, FileMode.Open, FileAccess.ReadWrite))
-            using (MappedFileView view = mapped.CreateView(0, 0))
-            {
-                foreach (Difference diff in diffs)
+                int retryCount = 10;
+                do
                 {
-                    if (!diff.Ignored)
+                    try
                     {
-                        view.Write((uint)diff.Offset, diff.NewValue);
+                        Directory.Move(source, target);
+                        break;
                     }
-                }
+                    catch (Exception)
+                    {
+                        Console.WriteLine("Bah! Failed to move the working directory!");
+                        --retryCount;
+                        Thread.Sleep(2500);
+                    }
+                } while (retryCount > 0);
             }
         }
+
+        private static void TryDeleteDirectory(string dir)
+        {
+            if (Directory.Exists(dir))
+            {
+                int retryCount = 10;
+                do
+                {
+                    try
+                    {
+                        Directory.Delete(dir, true);
+                        break;
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine("Bah! Failed to delete the working directory!");
+                        --retryCount;
+                        Thread.Sleep(2500);
+                    }
+                } while (retryCount > 0);
+            }
+        }
+
     }
 }

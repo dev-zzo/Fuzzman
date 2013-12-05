@@ -15,6 +15,7 @@ namespace Fuzzman.Agent.Config
             this.TestCaseTemplate = "{DATETIME}-TC{TCN}";
             this.RunCount = 10;
             this.DisableDebugHeap = true;
+            this.FuzzerType = "DumbFuzzer";
         }
 
         /// <summary>
@@ -77,6 +78,11 @@ namespace Fuzzman.Agent.Config
         /// No attempt to gracefully close a console app will be done.
         /// </summary>
         public bool IsConsoleApp { get; set; }
+
+        /// <summary>
+        /// Which fuzzer to use.
+        /// </summary>
+        public string FuzzerType { get; set; }
 
         /// <summary>
         /// Process monitors to be instantiated.

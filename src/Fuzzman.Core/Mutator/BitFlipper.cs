@@ -13,8 +13,10 @@ namespace Fuzzman.Core.Mutator
             this.rng = rng;
         }
 
-        public void Process(MappedFileView view, List<Difference> diffs)
+        public List<Difference> Process(MappedFileView view)
         {
+            List<Difference> diffs = new List<Difference>();
+
             uint offset = rng.GetNext(0, view.Length);
             byte bit = (byte)(1 << (int)rng.GetNext(0, 8));
             diffs.Add(new Difference()
@@ -23,6 +25,8 @@ namespace Fuzzman.Core.Mutator
                 OldValue = view[offset],
                 NewValue = (byte)(view[offset] ^ bit),
             });
+
+            return diffs;
         }
 
         private IRandom rng;

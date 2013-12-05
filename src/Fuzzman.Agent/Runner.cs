@@ -14,7 +14,10 @@ using Fuzzman.Core.Monitor;
 
 namespace Fuzzman.Agent
 {
-    public class Runner
+    /// <summary>
+    /// Runs the target application, watching for events.
+    /// </summary>
+    public sealed class Runner
     {
         public Runner(AgentConfiguration config, ILogger logger)
         {
@@ -41,6 +44,8 @@ namespace Fuzzman.Agent
         {
             this.aborting = true;
         }
+
+        #region Implementation details
 
         private enum State
         {
@@ -202,14 +207,15 @@ namespace Fuzzman.Agent
                     Process targetProc = Process.GetProcessById((int)this.targetPid);
                     targetProc.CloseMainWindow();
 
+                    DateTime waitStart = DateTime.Now;
                     while (!this.doneWithTarget)
                     {
                         this.debugger.WaitAndDispatchEvent();
 
-                        // Account for state switch (when an exception occurs or another kill event).
-                        if (this.state != State.StopTarget)
+                        // Hardcoded for now...
+                        if (DateTime.Now - waitStart >= new TimeSpan(0, 0, 10))
                         {
-                            return this.state;
+                            return State.TerminateTarget;
                         }
                     }
                 }
@@ -448,6 +454,8 @@ namespace Fuzzman.Agent
             }
             return false;
         }
+
+        #endregion
 
         #endregion
     }

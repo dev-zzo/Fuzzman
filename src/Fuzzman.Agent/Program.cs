@@ -23,7 +23,7 @@ namespace Fuzzman.Agent
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Fuzzman version 1 alpha 2.");
+            Console.WriteLine("Fuzzman version 1 alpha 3.");
             Console.WriteLine();
 
             Options options = new Options();

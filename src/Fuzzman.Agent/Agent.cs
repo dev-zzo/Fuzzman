@@ -45,7 +45,7 @@ namespace Fuzzman.Agent
             }
         }
 
-        private readonly ILogger logger = LogManager.GetLogger("Agent");
+        private readonly ILogger logger = LogManager.GetLogger();
         private readonly Options options = null;
         private readonly AgentConfiguration config = null;
         private AgentThread[] threads;

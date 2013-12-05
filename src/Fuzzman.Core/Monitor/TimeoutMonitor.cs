@@ -25,10 +25,10 @@ namespace Fuzzman.Core.Monitor
 
         public void Detach()
         {
-            //if (this.timer != null)
-            //{
-            //    this.timer.Change(Timeout.Infinite, Timeout.Infinite);
-            //}
+            if (this.timer != null)
+            {
+                this.timer.Change(Timeout.Infinite, Timeout.Infinite);
+            }
         }
 
         public void Stop()

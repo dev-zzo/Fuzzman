@@ -54,6 +54,9 @@
     <Compile Include="Config\Options.cs" />
     <Compile Include="Fuzzers\DumbFuzzer.cs" />
     <Compile Include="FaultReport.cs" />
+    <Compile Include="Fuzzers\FuzzerHelper.cs" />
+    <Compile Include="Fuzzers\TTF\TTFFuzzer.cs" />
+    <Compile Include="Fuzzers\TTF\TtfStructs.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Runner.cs" />
@@ -70,6 +73,7 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy $(SolutionDir)..\lib\dbghelp.dll $(TargetDir) /y</PostBuildEvent>

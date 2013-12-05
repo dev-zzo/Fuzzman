@@ -5,6 +5,6 @@ namespace Fuzzman.Core
 {
     public interface IMutator
     {
-        void Process(MappedFileView view, List<Difference> diffs);
+        List<Difference> Process(MappedFileView view);
     }
 }

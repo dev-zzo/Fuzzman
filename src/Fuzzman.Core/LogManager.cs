@@ -19,12 +19,8 @@ namespace Fuzzman.Core
     {
         public static void Initialize(string path)
         {
+            basePath = Path.GetDirectoryName(path);
             instance = new LameFileLogger(path);
-        }
-
-        public static ILogger GetLogger(string facility)
-        {
-            return instance;
         }
 
         public static ILogger GetLogger()
@@ -32,7 +28,13 @@ namespace Fuzzman.Core
             return instance;
         }
 
+        public static ILogger GetLogger(string subPath)
+        {
+            return new LameFileLogger(Path.Combine(basePath, subPath));
+        }
+
         private static ILogger instance;
+        private static string basePath;
     }
 
     class LameFileLogger : ILogger
@@ -45,9 +47,6 @@ namespace Fuzzman.Core
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
             }
-
-            this.stream = new FileStream(this.path, FileMode.Append);
-            this.writer = new StreamWriter(this.stream);
         }
 
         public void SetLevel(LogLevel level)
@@ -107,8 +106,6 @@ namespace Fuzzman.Core
 
         private LogLevel minLevel;
         private string path;
-        private FileStream stream;
-        private StreamWriter writer;
 
         private void Write(LogLevel level, string message)
         {
@@ -116,11 +113,16 @@ namespace Fuzzman.Core
                 return;
 
             string line = String.Format("[{0,5}] {1}", level.ToString(), message);
-            lock (this.writer)
+
+            lock (this)
             {
-                writer.WriteLine(line);
-                writer.Flush();
-                Console.WriteLine(line);
+                using (Stream stream = new FileStream(this.path, FileMode.Append))
+                using (StreamWriter writer = new StreamWriter(stream))
+                {
+                    writer.WriteLine(line);
+                    writer.Flush();
+                    Console.WriteLine(line);
+                }
             }
         }
     }

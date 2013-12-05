@@ -6,38 +6,49 @@ using Fuzzman.Core.Platform.Mmap;
 
 namespace Fuzzman.Agent.Fuzzers
 {
+    /// <summary>
+    /// Quick, dirty, and effective!
+    /// </summary>
     class DumbFuzzer : IFuzzer
     {
         public DumbFuzzer(IRandom rng)
         {
             this.rng = rng;
-            this.bitFlipper = new BitFlipper(rng);
-            this.valueSetter = new ValueSetter(rng);
         }
 
-        public Difference[] Process(string target)
+        public Difference[] Diffs
+        {
+            get { return this.diffs; }
+        }
+
+        public void Populate(string source)
         {
             List<Difference> diffs = new List<Difference>();
 
-            using (MappedFile mapped = new MappedFile(target, FileMode.Open, FileAccess.Read))
+            using (MappedFile mapped = new MappedFile(source, FileMode.Open, FileAccess.Read))
             using (MappedFileView view = mapped.CreateView(0, 0))
             {
+                IMutator bitFlipper = new BitFlipper(this.rng);
+                IMutator valueSetter = new ValueSetter(this.rng);
                 int max;
                 max = (int)this.rng.GetNext(0, 51);
                 for (int i = 0; i < max; i++)
-                    bitFlipper.Process(view, diffs);
+                    diffs.AddRange(bitFlipper.Process(view));
 
                 max = (int)this.rng.GetNext(0, 6);
                 for (int i = 0; i < max; i++)
-                    valueSetter.Process(view, diffs);
+                    diffs.AddRange(valueSetter.Process(view));
             }
 
-            return diffs.ToArray();
+            this.diffs = diffs.ToArray();
+        }
+
+        public void Apply(string sourcePath, string targetPath)
+        {
+            FuzzerHelper.ApplyDifferences(this.diffs, sourcePath, targetPath);
         }
 
         private readonly IRandom rng;
-        private readonly IMutator bitFlipper;
-        private readonly IMutator valueSetter;
-
+        private Difference[] diffs;
     }
 }

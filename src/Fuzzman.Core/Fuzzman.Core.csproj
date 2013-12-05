@@ -35,6 +35,7 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ByteRange.cs" />
     <Compile Include="Debugger\DebuggerException.cs" />
     <Compile Include="Debugger\DebuggerHelper.cs" />
     <Compile Include="Debugger\DebugInfo\ExceptionDebugInfo.cs" />
