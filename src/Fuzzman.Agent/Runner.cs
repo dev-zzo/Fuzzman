@@ -11,6 +11,7 @@ using Fuzzman.Core.Debugger.DebugInfo;
 using Fuzzman.Core.Debugger.Simple;
 using Fuzzman.Core.Interop;
 using Fuzzman.Core.Monitor;
+using System.Globalization;
 
 namespace Fuzzman.Agent
 {
@@ -441,10 +442,22 @@ namespace Fuzzman.Agent
             {
                 try
                 {
-                    EXCEPTION_CODE passedException = (EXCEPTION_CODE)Enum.Parse(typeof(EXCEPTION_CODE), passedExceptionName);
-                    if (code == passedException)
+                    string name = passedExceptionName.ToUpper();
+                    if (name.StartsWith("0X"))
                     {
-                        return true;
+                        uint passedCode = UInt32.Parse(name.Substring(2), NumberStyles.HexNumber);
+                        if ((uint)code == passedCode)
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        EXCEPTION_CODE passedException = (EXCEPTION_CODE)Enum.Parse(typeof(EXCEPTION_CODE), passedExceptionName);
+                        if (code == passedException)
+                        {
+                            return true;
+                        }
                     }
                 }
                 catch (ArgumentException)

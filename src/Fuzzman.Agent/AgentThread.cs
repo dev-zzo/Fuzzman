@@ -102,11 +102,12 @@ namespace Fuzzman.Agent
 
                     string workId = String.Format("probe.{0}", this.workerId);
                     string workingDirectory = Path.Combine(this.config.TestCasesPath, workId);
+                    TryDeleteDirectory(workingDirectory);
                     Directory.CreateDirectory(workingDirectory);
                     ILogger runnerLogger = LogManager.GetLogger(Path.Combine(workId, "fuzzman.log"));
 
                     string sampleFileName = Path.GetFileName(currentSource);
-                    string samplePath = Path.Combine(workingDirectory, sampleFileName);
+                    string samplePath = Path.GetFullPath(Path.Combine(workingDirectory, sampleFileName));
 
                     // Run target for probe.
                     this.logger.Info("[{0}] Running a probe run.", this.workerId);
@@ -186,9 +187,11 @@ namespace Fuzzman.Agent
             }
             catch (Exception ex)
             {
+                this.logger.Fatal("[{0}] Exception:\n{1}", this.workerId, ex.ToString());
             }
 
             this.TerminateMonitors();
+            this.logger.Fatal("[{0}] Agent worker terminated.", this.workerId);
         }
 
         private string BuildCommandLine(string samplePath)
