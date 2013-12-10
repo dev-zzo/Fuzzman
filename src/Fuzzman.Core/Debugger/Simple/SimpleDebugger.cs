@@ -174,15 +174,27 @@ namespace Fuzzman.Core.Debugger.Simple
             ExceptionDebugInfo convertedInfo = this.ConvertDebugInfo(info.ExceptionRecord);
             bool isFirstChance = info.dwFirstChance != 0;
 
-            if (convertedInfo.ExceptionCode == EXCEPTION_CODE.EXCEPTION_BREAKPOINT && this.ignoreBreakpointCounter > 0)
+            // Some exceptions need special handling.
+            switch (convertedInfo.ExceptionCode)
             {
-                this.ignoreBreakpointCounter--;
-                return NTSTATUS.DBG_EXCEPTION_HANDLED;
-            }
+                case EXCEPTION_CODE.EXCEPTION_BREAKPOINT:
+                    if (this.ignoreBreakpointCounter > 0)
+                    {
+                        this.ignoreBreakpointCounter--;
+                        return NTSTATUS.DBG_EXCEPTION_HANDLED;
+                    }
+                    break;
 
-            if (convertedInfo.ExceptionCode == EXCEPTION_CODE.EXCEPTION_CPLUSPLUS && isFirstChance)
-            {
-                return NTSTATUS.DBG_EXCEPTION_NOT_HANDLED;
+                case EXCEPTION_CODE.EXCEPTION_CPLUSPLUS:
+                case EXCEPTION_CODE.EXCEPTION_DELPHI:
+                    if (isFirstChance)
+                    {
+                        return NTSTATUS.DBG_EXCEPTION_NOT_HANDLED;
+                    }
+                    break;
+
+                case EXCEPTION_CODE.EXCEPTION_NONCONTINUABLE_EXCEPTION:
+                    return NTSTATUS.DBG_EXCEPTION_HANDLED;
             }
 
             if (this.ExceptionEvent != null)

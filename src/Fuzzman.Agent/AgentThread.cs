@@ -105,6 +105,7 @@ namespace Fuzzman.Agent
                     TryDeleteDirectory(workingDirectory);
                     Directory.CreateDirectory(workingDirectory);
                     ILogger runnerLogger = LogManager.GetLogger(Path.Combine(workId, "fuzzman.log"));
+                    runnerLogger.Info("Test case seed: {0}.", seed);
 
                     string sampleFileName = Path.GetFileName(currentSource);
                     string samplePath = Path.GetFullPath(Path.Combine(workingDirectory, sampleFileName));
@@ -149,6 +150,7 @@ namespace Fuzzman.Agent
                             StringBuilder builder = new StringBuilder(this.config.TestCaseTemplate, 256);
                             builder.Replace("{DATETIME}", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
                             builder.Replace("{SUMMARY}", analyser.ReportSummary);
+                            builder.Replace("{TCN}", this.testCase.TestCaseNumber.ToString("D8"));
 
                             // Try to minimize the reproducer.
                             if (this.testCase.Reports.Count == this.testCase.RunCount)

@@ -380,10 +380,11 @@ namespace Fuzzman.Agent
 
         private void OnException(IDebugger debugger, ExceptionEventParams info)
         {
-            this.logger.Info("Caught an exception {0:X8} at {1:X8} in thread {2}.",
+            this.logger.Info("Caught an exception {0:X8} at {1:X8} ({2}-chance) in {3}/{4}.",
                 (uint)info.Info.ExceptionCode,
                 (uint)info.Info.OffendingVA,
-                info.ThreadId);
+                info.IsFirstChance ? "first" : "second",
+                info.ThreadId, info.ProcessId);
 
             // We care for exceptions on exit -- may be a sign of heap corruption.
             if (this.state != State.MonitorTarget && this.state != State.StopTarget)
