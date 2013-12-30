@@ -161,6 +161,7 @@ namespace Fuzzman.Agent
 
                                 for (int i = 0; i < fuzzer.Diffs.Length; ++i)
                                 {
+                                    this.logger.Info("[{0}] Testing diff #{1}.", this.workerId, i);
                                     fuzzer.Diffs[i].Ignored = true;
                                     fuzzer.Apply(currentSource, minimalSamplePath);
 
@@ -169,6 +170,7 @@ namespace Fuzzman.Agent
 
                                     if (!this.IsValidResult(testResult))
                                     {
+                                        this.logger.Info("[{0}] Diff #{1} is required.", this.workerId, i);
                                         fuzzer.Diffs[i].Ignored = false;
                                     }
                                 }
