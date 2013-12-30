@@ -155,13 +155,12 @@ namespace Fuzzman.Agent
                             // Try to minimize the reproducer.
                             if (this.testCase.Reports.Count == this.testCase.RunCount)
                             {
-                                this.logger.Info("[{0}] Test case looks stable; starting minimization runs.", this.workerId);
-                                string minimalSampleName = "minimal" + Path.GetExtension(currentSource);
-                                string minimalSamplePath = Path.Combine(workingDirectory, minimalSampleName);
+                                runnerLogger.Info("Test case looks stable; starting minimization runs.");
 
                                 for (int i = 0; i < fuzzer.Diffs.Length; ++i)
                                 {
-                                    this.logger.Info("[{0}] Testing diff #{1}.", this.workerId, i);
+                                    runnerLogger.Info("Testing diff #{0}.", i);
+                                    string minimalSamplePath = Path.Combine(workingDirectory, String.Format("minimal-test-{0}", i) + Path.GetExtension(currentSource));
                                     fuzzer.Diffs[i].Ignored = true;
                                     fuzzer.Apply(currentSource, minimalSamplePath);
 
@@ -170,11 +169,28 @@ namespace Fuzzman.Agent
 
                                     if (!this.IsValidResult(testResult))
                                     {
-                                        this.logger.Info("[{0}] Diff #{1} is required.", this.workerId, i);
+                                        runnerLogger.Info("Diff #{0} is required.", i);
                                         fuzzer.Diffs[i].Ignored = false;
+                                    }
+
+                                    try
+                                    {
+                                        File.Delete(minimalSamplePath);
+                                    }
+                                    catch (Exception)
+                                    {
+                                        runnerLogger.Error("Failed to delete the test file.");
                                     }
                                 }
                                 this.logger.Info("[{0}] Minimization runs complete.", this.workerId);
+
+                                runnerLogger.Info("Required changes:", this.workerId);
+                                for (int i = 0; i < fuzzer.Diffs.Length; ++i)
+                                {
+                                    runnerLogger.Info("  {0:X8} {1:X2} -> {2:X2}", fuzzer.Diffs[i].Offset, fuzzer.Diffs[i].OldValue, fuzzer.Diffs[i].NewValue);
+                                }
+                                string reproducerPath = Path.Combine(workingDirectory, "reproducer" + Path.GetExtension(currentSource));
+                                fuzzer.Apply(currentSource, reproducerPath);
                             }
 
                             TryMoveDirectory(workingDirectory, Path.Combine(this.config.TestCasesPath, builder.ToString()));

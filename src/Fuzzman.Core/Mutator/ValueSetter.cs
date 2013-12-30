@@ -22,12 +22,16 @@ namespace Fuzzman.Core.Mutator
             byte value = (byte)(rng.GetNext(0, 256) > 128 ? 0xFF : 0x00);
             for (uint i = 0; i <= size; ++i)
             {
-                diffs.Add(new Difference()
+                Difference diff = new Difference()
                 {
                     Offset = offset + i,
                     OldValue = view[offset + i],
                     NewValue = value,
-                });
+                };
+                if (diff.OldValue != diff.NewValue)
+                {
+                    diffs.Add(diff);
+                }
             }
 
             return diffs;
