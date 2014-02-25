@@ -19,8 +19,9 @@ namespace Fuzzman.Core
     {
         public static void Initialize(string path)
         {
-            basePath = Path.GetDirectoryName(path);
-            instance = new LameFileLogger(path);
+            string fullPath = Path.GetFullPath(path);
+            basePath = Path.GetDirectoryName(fullPath);
+            instance = new LameFileLogger(fullPath);
         }
 
         public static ILogger GetLogger()
@@ -43,9 +44,10 @@ namespace Fuzzman.Core
         {
             this.minLevel = LogLevel.INFO;
             this.path = path;
-            if (!Directory.Exists(Path.GetDirectoryName(path)))
+            string dir = Path.GetDirectoryName(path);
+            if (!Directory.Exists(dir))
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                Directory.CreateDirectory(dir);
             }
         }
 

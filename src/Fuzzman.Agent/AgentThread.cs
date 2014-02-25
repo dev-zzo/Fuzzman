@@ -63,6 +63,7 @@ namespace Fuzzman.Agent
         private bool aborting;
         private Runner runner;
         private TestCase testCase;
+        private string workingDirectory;
 
         private void ThreadProc()
         {
@@ -73,6 +74,10 @@ namespace Fuzzman.Agent
 
             try
             {
+                string workId = String.Format("probe.{0}", this.workerId);
+                string baseDirectory = Path.GetFullPath(this.config.TestCasesPath);
+                this.workingDirectory = Path.Combine(baseDirectory, workId);
+
                 while (!this.aborting)
                 {
                     int seed;
@@ -100,15 +105,14 @@ namespace Fuzzman.Agent
                     this.logger.Info("[{0}] Using source: {1}", this.workerId, currentSource);
                     fuzzer.Populate(currentSource);
 
-                    string workId = String.Format("probe.{0}", this.workerId);
-                    string workingDirectory = Path.Combine(this.config.TestCasesPath, workId);
-                    TryDeleteDirectory(workingDirectory);
-                    Directory.CreateDirectory(workingDirectory);
+                    TryDeleteDirectory(this.workingDirectory);
+                    Directory.CreateDirectory(this.workingDirectory);
+
                     ILogger runnerLogger = LogManager.GetLogger(Path.Combine(workId, "fuzzman.log"));
                     runnerLogger.Info("Test case seed: {0}.", seed);
 
                     string sampleFileName = Path.GetFileName(currentSource);
-                    string samplePath = Path.GetFullPath(Path.Combine(workingDirectory, sampleFileName));
+                    string samplePath = Path.GetFullPath(Path.Combine(this.workingDirectory, sampleFileName));
 
                     // Run target for probe.
                     this.logger.Info("[{0}] Running a probe run.", this.workerId);
@@ -141,7 +145,7 @@ namespace Fuzzman.Agent
                         if (analyser.IsInteresting)
                         {
                             this.logger.Info("[{0}] Test case produced some results.", this.workerId);
-                            using (FileStream stream = new FileStream(Path.Combine(workingDirectory, "analysis.txt"), FileMode.CreateNew, FileAccess.Write))
+                            using (FileStream stream = new FileStream(Path.Combine(this.workingDirectory, "analysis.txt"), FileMode.CreateNew, FileAccess.Write))
                             using (StreamWriter writer = new StreamWriter(stream))
                             {
                                 writer.WriteLine(analyser.ReportText);
@@ -160,7 +164,7 @@ namespace Fuzzman.Agent
                                 for (int i = 0; i < fuzzer.Diffs.Length; ++i)
                                 {
                                     runnerLogger.Info("Testing diff #{0}.", i);
-                                    string minimalSamplePath = Path.Combine(workingDirectory, String.Format("minimal-test-{0}", i) + Path.GetExtension(currentSource));
+                                    string minimalSamplePath = Path.Combine(this.workingDirectory, String.Format("minimal-test-{0}", i) + Path.GetExtension(currentSource));
                                     fuzzer.Diffs[i].Ignored = true;
                                     fuzzer.Apply(currentSource, minimalSamplePath);
 
@@ -189,11 +193,11 @@ namespace Fuzzman.Agent
                                 {
                                     runnerLogger.Info("  {0:X8} {1:X2} -> {2:X2}", fuzzer.Diffs[i].Offset, fuzzer.Diffs[i].OldValue, fuzzer.Diffs[i].NewValue);
                                 }
-                                string reproducerPath = Path.Combine(workingDirectory, "reproducer" + Path.GetExtension(currentSource));
+                                string reproducerPath = Path.Combine(this.workingDirectory, "reproducer" + Path.GetExtension(currentSource));
                                 fuzzer.Apply(currentSource, reproducerPath);
                             }
 
-                            TryMoveDirectory(workingDirectory, Path.Combine(this.config.TestCasesPath, builder.ToString()));
+                            TryMoveDirectory(this.workingDirectory, Path.Combine(this.config.TestCasesPath, builder.ToString()));
                         }
                     }
                     else
@@ -202,7 +206,7 @@ namespace Fuzzman.Agent
                     }
 
                     // Cleanup
-                    TryDeleteDirectory(workingDirectory);
+                    TryDeleteDirectory(this.workingDirectory);
                 }
             }
             catch (Exception ex)
@@ -218,6 +222,7 @@ namespace Fuzzman.Agent
         {
             StringBuilder builder = new StringBuilder(this.config.CommandLine, 256);
             builder.Replace("{TARGET}", samplePath);
+            builder.Replace("{WORKDIR}", this.workingDirectory);
             return builder.ToString();
         }
 
