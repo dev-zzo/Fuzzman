@@ -35,9 +35,16 @@ namespace Fuzzman.Agent.Config
 
         /// <summary>
         /// Where to get the source files to be fuzzed.
+        /// This details specific files to be used as sources.
         /// </summary>
         [XmlArrayItem("SourceFilePath")]
         public string[] Sources { get; set; }
+
+        /// <summary>
+        /// Where to get the source files to be fuzzed.
+        /// This provides a whole directory containing source files.
+        /// </summary>
+        public string SourcesDir { get; set; }
 
         /// <summary>
         /// Which exceptions are to be passed to the application on the first chance.

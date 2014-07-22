@@ -100,8 +100,7 @@ namespace Fuzzman.Agent
 
                     this.logger.Fatal("[{0}] *** Test case #{1} setting up (seed: {2}).", this.workerId, this.testCase.TestCaseNumber, seed);
 
-                    uint sourceIndex = rng.GetNext(0, (uint)this.config.Sources.Length);
-                    string currentSource = this.config.Sources[sourceIndex];
+                    string currentSource = this.ChooseSource(rng);
                     this.logger.Info("[{0}] Using source: {1}", this.workerId, currentSource);
                     fuzzer.Populate(currentSource);
 
@@ -216,6 +215,25 @@ namespace Fuzzman.Agent
 
             this.TerminateMonitors();
             this.logger.Fatal("[{0}] Agent worker terminated.", this.workerId);
+        }
+
+        private string ChooseSource(IRandom rng)
+        {
+            if (this.config.Sources != null)
+            {
+                uint sourceIndex = rng.GetNext(0, (uint)this.config.Sources.Length);
+                return this.config.Sources[sourceIndex];
+            }
+            else if (this.config.SourcesDir != null)
+            {
+                string[] sources = Directory.GetFiles(this.config.SourcesDir);
+                uint sourceIndex = rng.GetNext(0, (uint)sources.Length);
+                return sources[sourceIndex];
+            }
+            else
+            {
+                throw new Exception("No sources to choose from.");
+            }
         }
 
         private string BuildCommandLine(string samplePath)
